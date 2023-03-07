@@ -1,0 +1,36 @@
+version: "3.9"
+
+networks:
+  proxy:
+    name: ${NETWORK_NAME}
+    external: true
+
+services:
+  varnish:
+    container_name: varnish
+    image: varnish
+    environment:
+      TZ: 'America/Los_Angeles'
+    ports:
+      - "80:80"
+#      - "443:443"
+    volumes:
+      - ./default.vcl:/etc/varnish/default.vcl:ro
+    tmpfs: "/var/lib/varnish/varnishd:rw,exec"
+    networks:
+      - proxy
+    restart: unless-stopped
+
+  hitch:
+    image: hitch
+    environment:
+      TZ: 'America/Los_Angeles'
+    ports:
+      - "443:443"
+    volumes:
+      - ./hitch.conf:/etc/hitch/hitch.conf:ro
+    depends_on:
+      - varnish
+    networks:
+      - proxy
+    restart: unless-stopped
