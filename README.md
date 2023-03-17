@@ -1,156 +1,161 @@
 # docker-varnish
 
-THIS IS COPIED FROM MY CADDY PROJECT AND I JUST STARTED REWRITING IT.
-
-I use as a reverse proxy for Mapproxy.
-
-## Use Docker to run a simple HTTP server.
+Varnish is used as a reverse proxy for Mapproxy. 
+Hitch does the TLS part, it's a proxy between Varnish and the world.
+Varnish and Hitch communicate using the "PROXY" protocol.
+Certbot manages certificates from the host but there is a tiny web server
+here to answer challenge requests.
 
 ## Prerequisites
 
-Copy sample.env to .env and edit.
+For this to work, the firewall must route traffic for port 80 and 443 to the machine running Varnish.
 
-Create the internal network, I happen to name it "proxy" for historic reasons.
+### Network
+
+Create the internal network, I happened to name it "proxy". This network is how Varnish and the backends talk to each other.
+(Varnish can proxy any server anywhere but I did it this way.)
 
 ```bash
 docker network create proxy
 ```
 
-Create the volume for certificates and a link.
-The link makes it easier to work with the certificates from other containers like svelte-template-app.
-I tried using a normal Docker volume but hit permissions problems so now I just do "mkdir certs".
+### Set up "Let's Encrypt"
+
+Hitch needs certificates, and it's easiest to just install certbot on the host and run it once a month to keep them up to date. Mount the host certificate folder in hitch.
+
+I use snap to install certbot, see Resources section. To install, I did this.
 
 ```bash
-docker compose up -d
-docker run -ti --rm \
-  -v ./certs:/db
-     alpine sh -c 'ln -s /db/caddy/certificates/acme-v02.api.letsencrypt.org-directory/ certificates'
+sudo snap install --classic certbot
+sudo ln -s /snap/bin/certbot /usr/bin/certbot
 ```
 
-For this to work, the firewall must route traffic for port 80 and 443 to this machine.
+The folder "acme-challenge" will be used by certbot to store "challenge" files.
+The included web server will serve them at http://localhost/.well-known/acme-challenge/. (Put your own server name in there.) You should be able to see the index.html file there.
+
+Varnish will proxy this page at whatever your FQDN is.
+(Hmm, I still have to make it work for more than one FQDN.)
+
+Testing, use your names not mine!
+
+```
+sudo certbot certonly --dry-run --webroot -w acme-challenge -d foxtrot.clatsopcounty.gov -m 
+```
+
+I can't choose which DNS service is used, that means I have to expose a web server for certbot to work. I did it using a python based server via the certbot-web service in the docker-compose.yml file. I want my projects as decoupled as possible so I don't really want to rely on some other docker set up to provide the web service.
+
+I use a script called rewew_certs.sh to run certbot. Laucnh it from /etc/crontab
+once a month. Sample crontab line:
 
 ```bash
-docker compose up -d
+0  0 1  * *     root    HOSTNAMES="my comma delimited list of domains" EMAIL=My_Email_Address /home/gis/docker/varnish/renew_certs.sh
 ```
 
-## Permissions
+*** I Broke The Rules And This Is Bad ***
 
-I decided to borrow the certificates generated here to test a Svelte
-app (svelte-template-app) that needed authentication, so I wanted it
-to use SSL. That means it needed to be able to read the certificates
-that Caddy generates.
+I copied the PEM files from letsencrypt into ./certs.
 
-I changed this project to drop root permissions when it runs Caddy.
-This is why you need to specify a USER_ID in the .env file.
-Dropping root also means you need group read on the Docker socket,
-so there is also GROUP_ID in the .env.
-If you change these then you need to do another 'docker-compose build'.
+** FIX ME **
 
-To drop root, I had to change permissions on the caddy_data and config
-folders. I created a user "caddy" and put it in the "docker" group so
-that it could read the unix docker socket. Then I gave the volume
-group write and set its group to "docker".  I moved the config folder
-from /config, and it does not need to be in a separate volume, so it's
-in /home/caddy/ now (in the container).
+Make a dockerized certbot that writes certs into a volume. 
+Run the certbot once a week from crontab, maybe. Don't run it as a daemon.
 
-## Almost there
+### Set up Photos
 
-At this point you should probably do a build and see if everything works.
+If you keep media on CIFS filesystems you will need credentials.
+I keep mine in /home/gis/.smbcredentials
+
+1. Edit create_photo_volumes.sh as needed
+2. Run it: ./create_photo_volumes.sh
+
+
+## Set up Varnish
+
+You have to build the certbot web server and hitch but currently
+varnish uses standard images so no build there.
+
+All this web server does is work with certbot to confirm you are really who you
+say you are. It has a folder .well-known/acme-challenge that it serves.
 
 ```bash
-docker compose build
+docker buildx build -f Dockerfile.hitch -t cc/hitch .
+docker buildx build -f Dockerfile.certbot-web -t cc/certbot-web .
 ```
 
-## Testing
+### Proxy something
 
-There are two test servers COMMENTED OUT in the docker-compose.yml file, you
-must provide "test.YOURDOMAIN" and "home.YOURDOMAIN" entries in your
-DNS for the tests to work. You can remove the "#" in front of the lines
-in docker-compose.yml and then restart it.
+Customize default.vcl for your site.  Start by copying default.vcl.sample, then edit it.
+Follow the [correct VCL syntax](http://varnish-cache.org/docs/7.2/users-guide/vcl-syntax.html)
+
+First set up a backend, this will be the "origin" server, the place the content comes from.
+Then add some code to the vcl_recv subroutine. This will direct traffic to a backend
+based on rules you define. 
+
+## Photos
+
+Photos are served out of an nginx server because it has a nice
+thumbnail add-on. I used to have a completely separate nginx project
+but now it's built-in here. Partly to avoid a startup problem with its name.
+(If it's not running when Varnish starts then the startup of Varnish fails.)
 
 ## Run
 
-The usual
-
-   docker compose up -d
-
-### How to reload just the proxy
-
-This is the clumsy way.
-
 ```bash
-   docker exec caddy_caddy_1 caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+docker compose up -d
 ```
 
-This is more elegant. Not sure if it works. TODO :-)
+### How to reload just varnish
+
+You can do this after editing the default.vcl file, so that you don't have to 
+restart all the services.
 
 ```bash
-   docker exec caddy_caddy_1 curl http://localhost:2019/reload/
+   docker exec varnish varnishreload
+```
+
+### Streaming the logfile
+
+You can watch all the extensive and detailed log messages by doing
+
+```bash
+    docker exec varnish varnishlog
 ```
 
 ## TESTS
 
-Solve these problems to determine if it is suitable.
+There's a program included with Varnish called varnishtest and you should look at it!
+See a demonstration of how it can be used here.
+https://info.varnish-software.com/blog/rewriting-urls-with-varnish
 
-* Support more than one FQDN (virtual hosts)
-* Support static content on different paths
-* Reverse proxy many services, on different virtual hosts
-* Can it run in SWARM mode? This would allow me to run the proxy on one machine and have services on others.
-For example, I could put webforms.co.clatsop.or.us on cc-giscache and put the actual Flask docker on cc-testmaps.
-This is not essential but would be great to separate development from production.
+### Certbot challenge web server test cases
 
-I am going to use these services as my test.
+Direct access
+The first three should complete; the last one should throw a 404.
 
-* A service running in its own container falco.wildsong.biz
-* A folder of static content underneath the same server at /static/
-* Another docker service on a different path. home-assistant.wildsong.biz
-* A service running on a different machine mapproxy.wildsong.biz
+   curl http://localhost:8000/
+   curl http://localhost:8000/.well-known/acme-challenge/
+   curl http://localhost:8000/.well-known/acme-challenge/test.html
+   curl -v http://localhost:8000/404Error
 
-### Comprehensive list of supported URLs
+Through the proxy
+   curl https://foxtrot.clatsopcounty.gov/
+   curl https://foxtrot.clatsopcounty.gov/.well-known/acme-challenge/
+   curl https://foxtrot.clatsopcounty.gov/.well-known/acme-challenge/test.html
+   curl -v https://foxtrot.clatsopcounty.gov/404Error
 
-For CC, test these URLs, they are the ones we need to have functional.
+### Test supported URLs
 
-This is a flask microservice that uses SQL to find the location of photos, then serves them.
-curl https://giscache.co.clatsop.or.us/photos/property/59210
-curl https://giscache.co.clatsop.or.us/photos/tn/property/59210
+Use unittest.py to do all the testing.
+Add more test cases if you add more stuff.
 
-#### This is mapproxy
+## Debugging
 
-curl https://giscache.co.clatsop.or.us/
-curl https://giscache.co.clatsop.or.us/osip/demo/?srs=EPSG%3A3857&format=image%2Fjpeg&wms_layer=osip2018
-
-#### nginx static content
-
-Content served directly from a separate nginx server (in a docker, see docker-nginx in Wildsong git).
+1. In terminal #1, watch the very detailed log,
+2. In terminal #2, send a request and stand back.
 
 ```bash
-curl https://giscache.co.clatsop.or.us/precincts/Precinct_119.pdf
-curl https://giscache.co.clatsop.or.us/precinct_tn/Precinct_119.png
-
-The all require redirects, hence the -L
-curl -L https://giscache.co.clatsop.or.us/photos/static
-curl -L https://giscache.co.clatsop.or.us/photos/waterway/5114
-curl -L https://giscache.co.clatsop.or.us/photos/tn/waterway/5114
-curl -L https://giscache.co.clatsop.or.us/photos/bridges/604A
-curl -L https://giscache.co.clatsop.or.us/photos/bridges/604A.jpg
-curl -L https://giscache.co.clatsop.or.us/photos/tn/bridges/604A
-
-
-This just redirects to a different server (Matomo)
-https://echo.co.clatsop.or.us/
-```
-
-## Adding a new service
-
-The service has to have labels defined in its docker-compose.yml file
-to tell Caddy about it. Here is my Home Assistant for example,
-
-```bash
-   labels:
-      caddy: homeassistant.${DOMAIN}
-      caddy.reverse_proxy: "{{upstreams 8123}}"
-      caddy.tls.protocols: "tls1.3"
-      caddy.tls.dns: "cloudflare ${API_TOKEN}"
+docker exec -it varnish varnishlog
+curl -v https://foxtrot.clatsopcounty.gov/
 ```
 
 ## Resources
@@ -158,32 +163,12 @@ to tell Caddy about it. Here is my Home Assistant for example,
 See my Mediawiki project, which uses this proxy and runs a MediaWiki based wiki.
 https://github.com/Wildsong/docker-caddy-mediawiki
 
-https://blog.atkinson.cloud/posts/2021/02/running-caddy-as-a-reverse-proxy-with-cloudflare-dns/
 
 Cloudflare API tokens, find them in your Cloudflare **profile** and look in the left bar for "API Tokens". 
 
 https://dash.cloudflare.com/profile/api-tokens
 
-Caddy cloudflare plugin needs a token Zone - Zone - Read and Zone - DNS - Edit and I set one for map46.com only.
+Cloudflare plugin needs a token Zone - Zone - Read and Zone - DNS - Edit and I set one for map46.com only.
 
-## Other useful commands
-
-Test a CaddyFile.
-
-docker run --rm -v $PWD/Caddyfile:/etc/caddy/Caddyfile caddy:2.4.6 caddy fmt /etc/caddy/Caddyfile
-
-List the current configuration
-
-   CAD=`docker ps | grep caddy-reverse | cut -c 1-12`
-   docker exec $CAD curl -s http://localhost:2019/config/ | jq
-
-## Future work
-
-Deal with config issues some more elegant way?
-
-### Swarm
-
-Make it all work under swarm. Currently what's holding me back is Home Assistant, 
-which has to be able to access a USB device to talk Zigbee.
-Until I work that out, I will be stuck in Compose.
-
+Certbot set up on Debian
+https://certbot.eff.org/instructions?ws=nginx&os=debiantesting

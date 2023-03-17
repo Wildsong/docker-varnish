@@ -5,32 +5,92 @@ networks:
     name: ${NETWORK_NAME}
     external: true
 
-services:
-  varnish:
-    container_name: varnish
-    image: varnish
-    environment:
-      TZ: 'America/Los_Angeles'
-    ports:
-      - "80:80"
-#      - "443:443"
-    volumes:
-      - ./default.vcl:/etc/varnish/default.vcl:ro
-    tmpfs: "/var/lib/varnish/varnishd:rw,exec"
-    networks:
-      - proxy
-    restart: unless-stopped
+volumes:
+  letsencrypt:
+    name: varnish-letsencrypt
+  bridges:
+    name: cifs_bridges
+    external: true
+  waterway:
+    name: cifs_waterway
+    external: true
 
+services:
+
+# Varnish and hitch will communicate over port 8443
+# but since they share the same internal network there is no need to expose anything
+
+  # I listen for everything on port 443, using Let's Encrypt certificates
+  # and then just send everything over the PROXY connection to vanish on port 8443
   hitch:
-    image: hitch
+    container_name: hitch
+    image: cc/hitch
+    build:
+      dockerfile: Dockerfile.hitch
+      context: .
     environment:
       TZ: 'America/Los_Angeles'
     ports:
       - "443:443"
     volumes:
-      - ./hitch.conf:/etc/hitch/hitch.conf:ro
+      - ./certs:/certs:ro
     depends_on:
       - varnish
     networks:
       - proxy
+    restart: unless-stopped
+
+  # I need to have port 80 visible so that I can redirect traffic to TLS.
+  # Everything else comes in from hitch.
+  varnish:
+    container_name: varnish
+    image: varnish:stable
+    environment:
+      TZ: 'America/Los_Angeles'
+    ports:
+      - "80:80"
+    volumes:
+      - ./default.vcl:/etc/varnish/default.vcl:ro
+    tmpfs: "/var/lib/varnish/varnishd:rw,exec"
+    networks:
+      proxy:
+        aliases: 
+          - varnish
+    depends_on:
+      - certbot
+      - photos
+    restart: unless-stopped
+
+  # This is a python program to serve http content, running on port 8000.
+  # Certbot has to be able to write to its docs folder, but the http server does not.
+  certbot:
+    container_name: certbot
+    image: cc/certbot-web
+    build: 
+      dockerfile: Dockerfile.certbot-web
+      context: .
+    volumes:
+      - ./webroot:/www:ro
+    ports:
+    # This only needs to be exposed for testing.
+      - "8000:8000"
+    networks:
+      proxy:
+        aliases:
+          - certbot
+
+  photos:
+    container_name: photos
+    image: nginx:latest
+    volumes:
+      # Override the standard file, so we can load the image_filter module.
+      - ./nginx_image_filter.conf:/etc/nginx/nginx.conf
+      - ./host.conf:/etc/nginx/conf.d/default.conf
+      - ./static_content:/srv/static:ro
+      - bridges:/srv/photos/bridges:ro
+      - waterway:/srv/photos/waterway:ro
+    networks:
+      proxy:
+        aliases:
+          - photos
     restart: unless-stopped
