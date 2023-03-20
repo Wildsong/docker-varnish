@@ -6,3 +6,12 @@ RUN mkdir /var/log/letsencrypt && \
 
 # Create a mount point for the volume
 RUN mkdir -p /www/.well-known/acme-challenge
+
+COPY dhparams.pem /usr/local/lib/
+
+# The deploy script runs when certificates change.
+COPY certbot_deploy.sh /usr/local/bin/certbot_deploy.sh
+
+# There are also pre- and post- hooks but they run every time, so they are not very interesting.
+
+

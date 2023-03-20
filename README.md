@@ -23,20 +23,31 @@ docker network create proxy
 
 Hitch needs certificates. (That's why it exists after all, to do TLS.)
 
+You should only have to create the dhparams.pem file one time.
+It will be baked into the cc/certbot images; the deploy hook
+script will copy dhparams.pem into the certificate bundle.
+
+```bash
+openssl dhparam 2048 > dhparams.pem
+docker buildx build -f Dockerfile.hitch -t cc/hitch .
+```
+
 You can run a separate task to maintain certificates. You have to start certbot_challenge, 
 then build and test with these commands.
 
+
 ```bash
 docker compose up certbot_challenge -d
-docker buildx build -f Dockerfile.certbot -t certbot .
+docker buildx build -f Dockerfile.certbot -t cc/certbot .
 docker compose run --rm certbot
 ```
 
 ***When you are done testing, remember to comment out the "--dry-run" option in the compose file, so that it will really pull certificates (or renew them.)***
 
 The folder "acme-challenge" is used by certbot to store "challenge" files.
-The web server 'certbot_-_challenge' will serve them at http://localhost/.well-known/acme-challenge/. (Put your own server name in there.) You should be able to see 
-the index.html file there and one called test.html.
+The web server 'certbot_-_challenge' will serve them at
+http://localhost/.well-known/acme-challenge/. (Put your own server name in there.
+You should be able to see the index.html file there and one called test.html.
 
 Varnish will proxy this page at whatever your FQDN is.
 (Hmm, I still have to make it work for more than one FQDN.)
@@ -58,12 +69,14 @@ docker run --rm -v /etc/letsencrypt:/le:ro -v letsencrypt_certs:/certs:rw \
 #### Run it periodically
 
 Let's Encrypt certificates are good for 90 days, so run the certbot from crontab, 
-but don't do it more than once a day or you will get banned.
+but don't do it more than once a day or you will get banned. I could check to see
+if the certificates changed, but it's easiest just to restart hitch every day, too.
 
 ```bash
 crontab -e
-# Renew certificates every Monday
-13 4  * * 1  cd $HOME/docker/varnish && docker compose run --rm certbot                                                                                     ```                        
+# Renew certificates every morning and then restart hitch so it gets new certs, if any
+23 4  * * *  cd $HOME/docker/varnish && docker compose run --rm certbot 
+34 5  * * *  cd $HOME/docker/varnish && docker compose restart hitch 
 
 ### Volumes for static web content
 

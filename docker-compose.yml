@@ -105,7 +105,7 @@ services:
   # or from crontab to renew certificates.
 
   certbot:
-    image: certbot
+    image: cc/certbot
     build:
       dockerfile: Dockerfile.certbot
       context: .
@@ -116,15 +116,21 @@ services:
       - ${PWD}/acme-challenge:/www/.well-known/acme-challenge:rw
     profiles: 
       - "certbot" # Don't start automatically
+
+      # Read options here https://eff-certbot.readthedocs.io/en/stable/using.html#configuration-file
     command:
-      - "certonly"
+      - "certonly" # Obtain certificate but don't try to install it.
+      #- "enhance"
+      #- "certificates" # Just show information about existing certificates
+      # options
       - "--dry-run" # Uncomment this for testing.
+ #     - "--test-cert" # Obtain a test certificate from a staging server
+      - "-m ${EMAIL}"
       - "--noninteractive"
       - "--agree-tos"
       - "--webroot"
-      - "-w"
-      - "/www"
-      - "--domains"
-      - ${DOMAINS}
-      - "-m ${EMAIL}"
+      - "--webroot-path=/www"
+      - "--domains=${DOMAINS}"
+      - '--deploy-hook=certbot_deploy.sh'
+      - "--max-log-backups=0"
     restart: never
