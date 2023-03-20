@@ -6,8 +6,13 @@ networks:
     external: true
 
 volumes:
-  letsencrypt:
-    name: varnish-letsencrypt
+  certs:
+    name: letsencrypt_certs
+    external: true
+  backup:
+    name: letsencrypt_backups
+
+  # Connections to servers for the photo web server (www).
   bridges:
     name: cifs_bridges
     external: true
@@ -33,7 +38,7 @@ services:
     ports:
       - "443:443"
     volumes:
-      - ./certs:/certs:ro
+      - certs:/certs:ro
     depends_on:
       - varnish
     networks:
@@ -48,49 +53,78 @@ services:
     environment:
       TZ: 'America/Los_Angeles'
     ports:
-      - "80:80"
+      - "80:80" # Let's Encrypt needs this open
     volumes:
-      - ./default.vcl:/etc/varnish/default.vcl:ro
+      - ./etc_varnish:/etc/varnish:ro
     tmpfs: "/var/lib/varnish/varnishd:rw,exec"
     networks:
       proxy:
-        aliases: 
-          - varnish
+        aliases:
+          - varnish # hitch.conf needs this
     depends_on:
-      - certbot
-      - photos
+      - certbot_challenge
+      - www
     restart: unless-stopped
 
-  # This is a python program to serve http content, running on port 8000.
+  # This serves http content for certbot, running on port 8000.
   # Certbot has to be able to write to its docs folder, but the http server does not.
-  certbot:
-    container_name: certbot
-    image: cc/certbot-web
+  certbot_challenge:
+    container_name: certbot_challenge
+    image: cc/challenge
     build: 
-      dockerfile: Dockerfile.certbot-web
+      dockerfile: Dockerfile.www
       context: .
-    volumes:
-      - ./webroot:/www:ro
     ports:
-    # This only needs to be exposed for testing.
-      - "8000:8000"
+      - "8000:8000" # Only needed for curl tests
+    volumes:
+      - ./acme-challenge:/www/.well-known/acme-challenge:ro
     networks:
       proxy:
         aliases:
-          - certbot
+          - challenger
 
-  photos:
-    container_name: photos
+  # This web server hosts both the main landing page for the site
+  # and the photo services
+  www:
+    container_name: www
     image: nginx:latest
     volumes:
-      # Override the standard file, so we can load the image_filter module.
+      - ./webserver.conf:/etc/nginx/conf.d/default.conf
       - ./nginx_image_filter.conf:/etc/nginx/nginx.conf
-      - ./host.conf:/etc/nginx/conf.d/default.conf
-      - ./static_content:/srv/static:ro
+      - ./www_content:/srv/www:ro
       - bridges:/srv/photos/bridges:ro
       - waterway:/srv/photos/waterway:ro
     networks:
       proxy:
         aliases:
-          - photos
+          - www
     restart: unless-stopped
+
+  ####################################################################################
+  # This service does not start automatically, it is run either as a separate command
+  # or from crontab to renew certificates.
+
+  certbot:
+    image: certbot
+    build:
+      dockerfile: Dockerfile.certbot
+      context: .
+    volumes:
+      - certs:/etc/letsencrypt:rw
+      - backup:/var/lib/letsencrypt:rw
+      # certbot writes a file here, then let's encrypt queries it via certbot-challenge
+      - ${PWD}/acme-challenge:/www/.well-known/acme-challenge:rw
+    profiles: 
+      - "certbot" # Don't start automatically
+    command:
+      - "certonly"
+      - "--dry-run" # Uncomment this for testing.
+      - "--noninteractive"
+      - "--agree-tos"
+      - "--webroot"
+      - "-w"
+      - "/www"
+      - "--domains"
+      - ${DOMAINS}
+      - "-m ${EMAIL}"
+    restart: never

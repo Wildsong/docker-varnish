@@ -21,53 +21,62 @@ docker network create proxy
 
 ### Set up "Let's Encrypt"
 
-Hitch needs certificates, and it's easiest to just install certbot on the host and run it once a month to keep them up to date. Mount the host certificate folder in hitch.
+Hitch needs certificates. (That's why it exists after all, to do TLS.)
 
-I use snap to install certbot, see Resources section. To install, I did this.
+You can run a separate task to maintain certificates. You have to start certbot_challenge, 
+then build and test with these commands.
 
 ```bash
-sudo snap install --classic certbot
-sudo ln -s /snap/bin/certbot /usr/bin/certbot
+docker compose up certbot_challenge -d
+docker buildx build -f Dockerfile.certbot -t certbot .
+docker compose run --rm certbot
 ```
 
-The folder "acme-challenge" will be used by certbot to store "challenge" files.
-The included web server will serve them at http://localhost/.well-known/acme-challenge/. (Put your own server name in there.) You should be able to see the index.html file there.
+***When you are done testing, remember to comment out the "--dry-run" option in the compose file, so that it will really pull certificates (or renew them.)***
+
+The folder "acme-challenge" is used by certbot to store "challenge" files.
+The web server 'certbot_-_challenge' will serve them at http://localhost/.well-known/acme-challenge/. (Put your own server name in there.) You should be able to see 
+the index.html file there and one called test.html.
 
 Varnish will proxy this page at whatever your FQDN is.
 (Hmm, I still have to make it work for more than one FQDN.)
 
-Testing, use your names not mine!
+I can't always choose which DNS service is used, that means I have to expose a web server for certbot to work. Running a challenge web server that does nothing but handle
+challenges decouples certificate management from serving web pages.
 
-```
-sudo certbot certonly --dry-run --webroot -w acme-challenge -d foxtrot.clatsopcounty.gov -m 
-```
+#### Existing certificates?? Copy them.
 
-I can't choose which DNS service is used, that means I have to expose a web server for certbot to work. I did it using a python based server via the certbot-web service in the docker-compose.yml file. I want my projects as decoupled as possible so I don't really want to rely on some other docker set up to provide the web service.
-
-I use a script called rewew_certs.sh to run certbot. Laucnh it from /etc/crontab
-once a month. Sample crontab line:
+When I migrated to the containerized certbot I already had some certificates in the host, so
+I did this. Mount the existing folder in a container and the new Docker volume,
+then do a simple copy.
 
 ```bash
-0  0 1  * *     root    HOSTNAMES="my comma delimited list of domains" EMAIL=My_Email_Address /home/gis/docker/varnish/renew_certs.sh
+docker run --rm -v /etc/letsencrypt:/le:ro -v letsencrypt_certs:/certs:rw \
+    debian cp -rp /le/ /certs
 ```
 
-*** I Broke The Rules And This Is Bad ***
+#### Run it periodically
 
-I copied the PEM files from letsencrypt into ./certs.
+Let's Encrypt certificates are good for 90 days, so run the certbot from crontab, 
+but don't do it more than once a day or you will get banned.
 
-** FIX ME **
+```bash
+crontab -e
+# Renew certificates every Monday
+13 4  * * 1  cd $HOME/docker/varnish && docker compose run --rm certbot                                                                                     ```                        
 
-Make a dockerized certbot that writes certs into a volume. 
-Run the certbot once a week from crontab, maybe. Don't run it as a daemon.
+### Volumes for static web content
 
-### Set up Photos
+The task "www" is a generic web server for serving static content.
+
+I have mixed feelings about putting the photo content right here too,
+but also I wanted a generic web server that could handle site landing page(s).
 
 If you keep media on CIFS filesystems you will need credentials.
 I keep mine in /home/gis/.smbcredentials
 
 1. Edit create_photo_volumes.sh as needed
 2. Run it: ./create_photo_volumes.sh
-
 
 ## Set up Varnish
 
@@ -93,12 +102,14 @@ based on rules you define.
 
 ## Photos
 
-Photos are served out of an nginx server because it has a nice
+Photos are served out of the "www" server. I used nginx because it has a nice
 thumbnail add-on. I used to have a completely separate nginx project
 but now it's built-in here. Partly to avoid a startup problem with its name.
 (If it's not running when Varnish starts then the startup of Varnish fails.)
 
-## Run
+Since I had already folded it into this project, I use it to serve landing pages too.
+
+## Deployment
 
 ```bash
 docker compose up -d
@@ -113,7 +124,7 @@ restart all the services.
    docker exec varnish varnishreload
 ```
 
-### Streaming the logfile
+### Streaming the Varnish logfile
 
 You can watch all the extensive and detailed log messages by doing
 
@@ -129,19 +140,20 @@ https://info.varnish-software.com/blog/rewriting-urls-with-varnish
 
 ### Certbot challenge web server test cases
 
-Direct access
-The first three should complete; the last one should throw a 404.
+As mentioned above, if you want to test the certbot, uncomment "--dry-run" and then
+run it with "docker compose run -d certbot".
 
-   curl http://localhost:8000/
+The challenge web server is just a tiny Python script.
+These URLs are supported via varnish letsencrypt.vcl.
+I read about it here
+https://docs.varnish-software.com/tutorials/hitch-letsencrypt/
+
    curl http://localhost:8000/.well-known/acme-challenge/
    curl http://localhost:8000/.well-known/acme-challenge/test.html
-   curl -v http://localhost:8000/404Error
-
-Through the proxy
-   curl https://foxtrot.clatsopcounty.gov/
+   curl http://foxtrot.clatsopcounty.gov/.well-known/acme-challenge/
+   curl http://foxtrot.clatsopcounty.gov/.well-known/acme-challenge/test.html
    curl https://foxtrot.clatsopcounty.gov/.well-known/acme-challenge/
    curl https://foxtrot.clatsopcounty.gov/.well-known/acme-challenge/test.html
-   curl -v https://foxtrot.clatsopcounty.gov/404Error
 
 ### Test supported URLs
 
