@@ -27,7 +27,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_response(404, message='BAD REQUEST')
             self.send_header("Content-type", "text/html")
             self.end_headers()
-            self.wfile.write(bytes(f"<html><body><h1>404 Not found</h1>req=\"{self.path}\"</body></html>", "utf-8"))
+            self.wfile.write(bytes(f"<html><body><h1>Challenge failed 404</h1>req=\"{self.path}\"</body></html>", "utf-8"))
         return
 
 with http.server.HTTPServer(("", PORT), Handler) as httpd:

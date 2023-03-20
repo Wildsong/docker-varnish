@@ -72,7 +72,7 @@ services:
     container_name: certbot_challenge
     image: cc/challenge
     build: 
-      dockerfile: Dockerfile.www
+      dockerfile: Dockerfile.challenge
       context: .
     ports:
       - "8000:8000" # Only needed for curl tests
