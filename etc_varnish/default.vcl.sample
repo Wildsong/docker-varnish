@@ -1,0 +1,68 @@
+vcl 4.1;
+
+# import vmod_dynamic for better backend name resolution
+#import dynamic;
+
+# Logging is included in std mod
+import std;
+
+backend default {
+	.host = "[certbot]";
+	.port = "8000";
+	.probe = {
+		.url = "/.well-known/acme-challenge/index.html";
+        .timeout = 1s;
+        .interval = 1h;
+        .window = 5;
+        .threshold = 3;
+    }
+}
+
+#backend giscache {
+#	.host = "giscache.co.clatsop.or.us";#
+#	.port = "8888";
+#	.probe = {
+##       .timeout = 1s;
+#        .interval = 5s;
+#        .window = 5;
+#        .threshold = 3;
+#    }
+#}
+
+#backend cc-testmaps {
+#	.host = "mapproxy";
+#	.port = "80";
+#	.probe = {
+#		.url = "/";
+ #       .timeout = 1s;
+  #      .interval = 5s;
+   #     .window = 5;
+    #    .threshold = 3;
+    #}
+#}
+
+#sub vcl_init {
+# for more info, see https://github.com/nigoroll/libvmod-dynamic/blob/master/src/vmod_dynamic.vcc
+#        new d = dynamic.director(port = "80");
+#	new vdir = directors.round_robin();
+#	vdir.add_backend(giscache);
+#}
+
+sub vcl_recv {
+
+	# Logging
+	if (std.port(server.ip) == 443) {
+		std.log("Client connected over TLS/SSL: " + server.ip);
+		std.syslog(6,"Client connected over TLS/SSL: " + server.ip);
+		std.timestamp("After std.syslog");
+	}
+
+	# force the host header to match the backend (not all backends need it,
+	# but example.com does)
+#	set req.http.host = "foxtrot.clatsopcounty.gov";
+	# set the backend
+#	set req.backend_hint = d.backend("foxtrot.clatsopcounty.gov");
+
+# Do no caching
+	return(pipe);
+}

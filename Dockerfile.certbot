@@ -1,0 +1,8 @@
+FROM certbot/certbot
+
+# I want the output to go to stdout but this does not work
+RUN mkdir /var/log/letsencrypt && \
+    ln -sf /dev/stdout /var/log/letsencrypt/letsencrypt.log
+
+# Create a mount point for the volume
+RUN mkdir -p /www/.well-known/acme-challenge
