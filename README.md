@@ -32,14 +32,31 @@ openssl dhparam 2048 > dhparams.pem
 docker buildx build -f Dockerfile.hitch -t cc/hitch .
 ```
 
-You can run a separate task to maintain certificates. You have to start certbot_challenge, 
+You can run a separate task to maintain certificates. 
+You have to start certbot_challenge, 
 then build and test with these commands.
 
+To use cloudflare you have to set up a cloudflare.ini file. See the sample.
 
 ```bash
-docker compose up certbot_challenge -d
+# Do this one time
+docker volume create letsencrypt_certs
+
+# Varnish and the challenge server have to be running
+# even if you don't have an certs.
+docker compose up -d
+
+# Install the DH and Deploy files
+docker cp dhparams.pem hitch:/certs/
+docker cp bundle.sh hitch:/certs/
+
+# If you use webroot auth
 docker buildx build -f Dockerfile.certbot -t cc/certbot .
 docker compose run --rm certbot
+
+# If you use cloudflare plugin
+docker buildx build -f Dockerfile.cloudflare -t cc/cloudflare .
+docker compose run --rm cloudflare
 ```
 
 ***When you are done testing, remember to comment out the "--dry-run" option in the compose file, so that it will really pull certificates (or renew them.)***
@@ -64,6 +81,14 @@ then do a simple copy.
 ```bash
 docker run --rm -v /etc/letsencrypt:/le:ro -v letsencrypt_certs:/certs:rw \
     debian cp -rp /le/ /certs
+```
+
+You should be able to check the status of your certificates any time, note
+that you have to allow read/write access for this to work
+
+```bash
+docker run --rm -v letsencrypt_certs:/etc/letsencrypt:rw cc/certbot certificates
+docker run --rm -v letsencrypt_certs:/etc/letsencrypt:rw cc/certbot show_account
 ```
 
 #### Run it periodically
