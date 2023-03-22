@@ -1,6 +1,11 @@
 vcl 4.1;
 import std;
 
+# remember to reload if you make changes
+# de varnish varnishreload
+
+# import vmod_dynamic for better backend name resolution
+#import dynamic;
 
 ##-###############################################################
 ## These are all part of the docker-compose for Varnish
@@ -21,7 +26,7 @@ backend certbot_challenge {
 # The main landing page and photo services (nginx)
 backend www {
 	.host = "[www]";
-	.port = "80";
+	.port = "81";
 }
 
 # separate mapproxy services

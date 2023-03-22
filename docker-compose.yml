@@ -14,17 +14,13 @@ volumes:
 
 services:
 
-# Varnish and hitch will communicate over port 8443
-# but since they share the same internal network there is no need to expose anything
+# Varnish and hitch will communicate over port 8443 over the proxy network
 
   # I listen for everything on port 443, using Let's Encrypt certificates
-  # and then just send everything over the PROXY connection to vanish on port 8443
+  # and then send everything over the PROXY connection to Varnish on port 8443
   hitch:
     container_name: hitch
-    image: cc/hitch
-    build:
-      dockerfile: Dockerfile.hitch
-      context: .
+    image: hitch
     environment:
       TZ: 'America/Los_Angeles'
     ports:
@@ -79,6 +75,9 @@ services:
 
   certbot:
     image: cc/certbot
+    build:
+      dockerfile: Dockerfile.certbot
+      context: .
     volumes:
       - certs:/etc/letsencrypt:rw
       - backup:/var/lib/letsencrypt:rw
@@ -92,7 +91,7 @@ services:
       - "certonly" # Obtain certificate but don't try to install it.
       # options
       - "--dry-run" # Uncomment this for testing.
-#      - "--quiet"
+      - "--quiet"
       - "-m ${EMAIL}"
       - "--noninteractive"
       - "--agree-tos"
