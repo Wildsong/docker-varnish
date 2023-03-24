@@ -193,7 +193,12 @@ sub vcl_recv {
   # set the backend
 #  set req.backend_hint = d.backend("giscache.clatsopcounty.gov");
 
-  return (pipe); # Do no caching
+  if (req.method != "GET" && req.method != "HEAD") {
+	return (pass); # Don't cache
+  }
+ 
+#  return (pipe); # Do no caching
+  # Cache everything
 }
 
 
