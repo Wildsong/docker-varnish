@@ -24,7 +24,7 @@ services:
     environment:
       TZ: 'America/Los_Angeles'
     ports:
-      # Moved to port 444 for testing on production server
+      # Move to port 444 if you want to do testing on production server
       - "443:443"
     volumes:
       - ./etc/${HITCH_FILE}:/etc/hitch/hitch.conf:ro
