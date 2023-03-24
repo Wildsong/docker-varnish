@@ -96,7 +96,9 @@ sub vcl_recv {
   # I can change the backend or be more sophisticated here.
   # https://giscache.co.clatsop.or.us/SERVICE
 
-  if (req.http.host == "giscache.co.clatsop.or.us") {
+  if (req.http.host == "giscache.clatsopcounty.gov"
+   || req.http.host == "giscache.co.clatsop.or.us") # deprecated
+  {
 
   # For MapProxy, each service has to add the service name part of the path back in
   # Varnish strips the service name out and adds in the port number the service runs on
@@ -153,6 +155,9 @@ sub vcl_recv {
 		set req.backend_hint = lidar;
 		set req.http.X-Script-Name = "/lidar-2020";
 
+    } elseif (req.url ~ "^/$") {
+	    set req.backend_hint = www;
+
     } elseif (req.url ~ "^/\.well-known/acme-challenge/") {
 	    set req.backend_hint = default;
 
@@ -176,7 +181,9 @@ sub vcl_recv {
   		set req.backend_hint = www;
     }
 
-  } elseif (req.http.host == "echo.clatsopcounty.gov") {
+  } elseif (req.http.host == "echo.clatsopcounty.gov"
+   		 || req.http.host == "echo.co.clatsop.or.us") # deprecated
+  {
     set req.backend_hint = matomo;
   }
 
@@ -187,10 +194,8 @@ sub vcl_recv {
 	std.timestamp("After std.syslog");
   }
 
-  # force the host header to match the backend (not all backends need it,
-  # but example.com does)
+# force the host header to match the backend (not all backends need it)
 #  set req.http.host = "giscache.clatsopcounty.gov";
-  # set the backend
 #  set req.backend_hint = d.backend("giscache.clatsopcounty.gov");
 
   return (pipe); # Do no caching
