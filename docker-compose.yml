@@ -24,9 +24,10 @@ services:
     environment:
       TZ: 'America/Los_Angeles'
     ports:
+      # Moved to port 444 for testing on production server
       - "443:443"
     volumes:
-      - ./${HITCH_FILE}:/etc/hitch/hitch.conf:ro
+      - ./etc/${HITCH_FILE}:/etc/hitch/hitch.conf:ro
       - certs:/certs:rw
     depends_on:
       - varnish
@@ -42,9 +43,12 @@ services:
     environment:
       TZ: 'America/Los_Angeles'
     ports:
-      - "80:80" # Let's Encrypt needs this open
+      # Move to port 88 for testing on production server
+      - "80:80" # Certbot challenge service needs this open
     volumes:
-      - ./etc_varnish:/etc/varnish:ro
+#      - ./etc/default.vcl:/etc/varnish/default.vcl:ro      # Bootstrap your certificates.
+      - ./etc/$DEFAULT_VCL_FILE:/etc/varnish/default.vcl:ro # Ready to run, good luck.
+      - ./etc:/etc/varnish/varnish.d:ro
     tmpfs: "/var/lib/varnish/varnishd:rw,exec"
     networks:
       proxy:
@@ -90,15 +94,15 @@ services:
     command:
       - "certonly" # Obtain certificate but don't try to install it.
       # options
-      - "--dry-run" # Uncomment this for testing.
-      - "--quiet"
+      #- "--dry-run" # Uncomment this for testing.
+      #- "--quiet" # Seems noisy even with this set.
       - "-m ${EMAIL}"
       - "--noninteractive"
       - "--agree-tos"
       - "--webroot"
       - "--webroot-path=/www"
       - "--domains=${DOMAINS}"
-      - "--deploy-hook=/etc/letsencrypt/bundle.sh"
+      - "--deploy-hook=/etc/letsencrypt/renewal-hooks/deploy/bundle.sh"
       - "--disable-hook-validation"
       - "--max-log-backups=0"
       - "--allow-subset-of-names"
