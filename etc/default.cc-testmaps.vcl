@@ -27,7 +27,7 @@ backend www {
 
 # The Matomo services
 backend matomo {
-	.host = "[matomo]";
+	.host = "[echo.clatsopcounty.gov]";
 	.port = "80";
 }
 
@@ -35,23 +35,23 @@ backend matomo {
 
 # separate mapproxy services
 backend bulletin {
-.host = "[cc-cc-testmaps]";
+	.host = "[cc-testmaps]";
 	.port = "8884";
 }
 backend city_aerials {
-	.host = "[cc-cc-testmaps]";
+	.host = "[cc-testmaps]";
 	.port = "8885";
 }
 backend county_aerials {
-	.host = "[cc-cc-testmaps]";
+	.host = "[cc-testmaps]";
 	.port = "8886";
 }
 backend county_aerials_brief {
-	.host = "[cc-cc-testmaps]";
+	.host = "[cc-testmaps]";
 	.port = "8887";
 }
 backend lidar {
-	.host = "[cc-cc-testmaps]";
+	.host = "[cc-testmaps]";
 	.port = "8888";
 }
 
@@ -59,21 +59,21 @@ backend lidar {
 ## These are currently just here for testing, not deployed yet
 
 #backend arctic_monitor {
-#	.host = "[cc-cc-testmaps]";
+#	.host = "[cc-testmaps]";
 #	.port = "5000";
 #}
 #backend arctic_geodatabase {
-#	.host = "[cc-cc-testmaps]";
+#	.host = "[cc-testmaps]";
 #	.port = "5001";
 #}
 
 # Web App Builder and Experience Builder
 #backend wabde {
-#	.host = "[cc-cc-testmaps]";
+#	.host = "[cc-testmaps]";
 #	.port = "3344";
 #
 #backend exb {
-#	.host = "[cc-cc-testmaps]";
+#	.host = "[cc-testmaps]";
 #	.port = "3000";
 #}
 
@@ -96,7 +96,7 @@ sub vcl_recv {
   # I can change the backend or be more sophisticated here.
   # https://giscache.co.clatsop.or.us/SERVICE
 
-  if (req.http.host == "giscache.co.clatsop.or.us") {
+  if (req.http.host == "foxtrot.clatsopcounty.gov") {
 
   # For MapProxy, each service has to add the service name part of the path back in
   # Varnish strips the service name out and adds in the port number the service runs on

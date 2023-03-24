@@ -71,6 +71,7 @@ services:
     networks:
       proxy:
         aliases:
+          - acme-challenge
           - challenger
 
   ####################################################################################
