@@ -31,6 +31,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         return
 
 with http.server.HTTPServer(("", PORT), Handler) as httpd:
-    print(f"Serving HTTP on port {PORT} in {DIRECTORY}.", file=sys.stderr)
+    print(f"Serving HTTP on port {PORT}.", file=sys.stderr)
     httpd.serve_forever()
 
