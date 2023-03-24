@@ -18,10 +18,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         # We expect only Let's Encrypt requests here, anything else is probably a mistake in default.vcl
         if self.path.startswith('/.well-known/acme-challenge'):
-            super().do_GET()
+            super().do_GET() # This maps the request to a file
 
-        elif self.path == '/' or self.path == '/favicon.ico':
-            super().do_GET()
+        elif self.path == '/':
+            # This custom response is used to test if the server is up.
+            self.send_response(200, message="Response received")
+            self.send_header("Content-type", "text/html")
+            self.send_header('X-SERVER','ACME')
+            self.end_headers()
+            self.wfile.write(bytes(f"<html><body><h1>Acme challenge server for Varnish</h1></body></html>", "utf-8"))
 
         else:
             self.send_response(404, message='BAD REQUEST')
