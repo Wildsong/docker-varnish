@@ -48,16 +48,24 @@ docker compose up -d
 
 # Install the DH and Deploy files
 docker cp dhparams.pem hitch:/certs/
-docker cp bundle.sh hitch:/certs/
+docker exec hitch mkdir -p /certs/renewal-hooks/deploy/ 
+docker cp bundle.sh hitch:/certs/renewal-hooks/deploy
+
+# Check your work, you should see the files you added
+docker run --rm -v letsencrypt_certs:/certs debian ls -Rl /certs
 
 # If you use webroot auth
 docker buildx build -f Dockerfile.certbot -t cc/certbot .
 docker compose run --rm certbot
+docker run --rm cc/certbot --version
 
-# If you use cloudflare plugin
+# ELSE you use cloudflare plugin
 docker buildx build -f Dockerfile.cloudflare -t cc/cloudflare .
 docker compose run --rm cloudflare
+docker run --rm cc/cloudflare --version
 ```
+
+*At this point you should be ready to attempt to request some certificates.*
 
 ***When you are done testing, remember to comment out the "--dry-run" option in the compose file, so that it will really pull certificates (or renew them.)***
 
@@ -72,7 +80,7 @@ Varnish will proxy this page at whatever your FQDN is.
 I can't always choose which DNS service is used, that means I have to expose a web server for certbot to work. Running a challenge web server that does nothing but handle
 challenges decouples certificate management from serving web pages.
 
-#### Existing certificates?? Copy them.
+#### Existing certificates?? You can try to copy them.
 
 When I migrated to the containerized certbot I already had some certificates in the host, so
 I did this. Mount the existing folder in a container and the new Docker volume,
@@ -87,9 +95,17 @@ You should be able to check the status of your certificates any time, note
 that you have to allow read/write access for this to work
 
 ```bash
-docker run --rm -v letsencrypt_certs:/etc/letsencrypt:rw cc/certbot certificates
-docker run --rm -v letsencrypt_certs:/etc/letsencrypt:rw cc/certbot show_account
+docker run --rm -v letsencrypt_certs:/etc/letsencrypt cc/certbot certificates
+docker run --rm -v letsencrypt_certs:/etc/letsencrypt cc/certbot show_account
 ```
+
+I had a lot of trouble getting the stupid thing to run the bundle.sh when it created
+a new set of certificate files and had to run it manually, you can do that with
+
+```bash
+docker run --rm -v letsencrypt_certs:/etc/letsencrypt --entrypoint sh cc/certbot
+cd /etc/letsencrypt/live/NEWDOMAINNAME
+/etc/letsencrypt/renewal-hooks/deploy/bundle.sh
 
 #### Run it periodically
 
