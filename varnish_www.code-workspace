@@ -10,9 +10,6 @@
 			"path": "../mapproxy"
 		},
 		{
-			"path": "../caddy"
-		},
-		{
 			"path": "../matomo"
 		}
 	],
