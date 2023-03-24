@@ -41,7 +41,7 @@ docker buildx build -f Dockerfile.hitch -t cc/hitch .
 
 Maintaining certificates (including creating and renewing them) is done
 as a separate process. If you don't use Cloudflare for DNS,
-you have to start certbot_challenge, 
+you have to start certbot_challenge,
 then build and test with these commands.
 
 I have three default.vcl files, when setting up new domains I leave it set to the
@@ -71,6 +71,7 @@ docker run --rm -v letsencrypt_certs:/certs debian ls -Rl /certs
 less 
 # IF you use webroot auth
 docker buildx build -f Dockerfile.certbot -t cc/certbot .
+docker buildx build -f Dockerfile.challenge -t cc/challenge .
 docker compose run --rm certbot
 docker run --rm cc/certbot --version
 

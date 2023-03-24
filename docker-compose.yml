@@ -94,7 +94,7 @@ services:
     command:
       - "certonly" # Obtain certificate but don't try to install it.
       # options
-      #- "--dry-run" # Uncomment this for testing.
+      - "--dry-run" # Uncomment this for testing.
       #- "--quiet" # Seems noisy even with this set.
       - "-m ${EMAIL}"
       - "--noninteractive"
