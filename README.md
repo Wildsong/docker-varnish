@@ -44,6 +44,13 @@ as a separate process. If you don't use Cloudflare for DNS,
 you have to start certbot_challenge, 
 then build and test with these commands.
 
+I have three default.vcl files, when setting up new domains I leave it set to the
+default (default.vcl) then when I am moving into deployment, I set DEFAULT_VCL_FILE
+in the .env file based on what I am doing (testing, production, or at home testing)
+Follow the [correct VCL syntax](http://varnish-cache.org/docs/7.2/users-guide/vcl-syntax.html) There are many many things you can do with Varnish, I have barely started learning it.
+
+The default.vcl file just has the mininum needed to bootstrap getting certificates for hitch.
+
 To use Cloudflare DNS challenges, you have to set up a cloudflare.ini file. See the sample.
 
 ```bash
@@ -140,14 +147,6 @@ crontab -e
 34 5  * * *  cd $HOME/docker/varnish && docker compose restart hitch 
 
 
-### Proxy something
-
-Customize default.vcl for your site.  Start by copying default.vcl.sample, then edit it.
-Follow the [correct VCL syntax](http://varnish-cache.org/docs/7.2/users-guide/vcl-syntax.html)
-
-First set up a backend, this will be the "origin" server, the place the content comes from.
-Then add some code to the vcl_recv subroutine. This will direct traffic to a backend
-based on rules you define. 
 
 ## Deployment
 
