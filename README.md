@@ -61,7 +61,7 @@ docker cp bundle.sh hitch:/certs/renewal-hooks/deploy
 
 # Check your work, you should see the files you added
 docker run --rm -v letsencrypt_certs:/certs debian ls -Rl /certs
-
+less 
 # IF you use webroot auth
 docker buildx build -f Dockerfile.certbot -t cc/certbot .
 docker compose run --rm certbot
