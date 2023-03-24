@@ -4,6 +4,10 @@ Varnish is used here mostly as a reverse proxy for Mapproxy.
 Hitch does the TLS part, as a proxy between Varnish and the world.
 Varnish and Hitch communicate using the "PROXY" protocol.
 
+2023-03-24
+TIL there is built in support for TLS now so everything I did with hitch is no longer needed.
+I leave work in 15 minutes so I will not look at it today. 
+
 As a separate process certbot manages certificates from the host.
 There is a tiny web server that answers challenge requests.
 
@@ -36,7 +40,6 @@ You should only have to create the dhparams.pem file one time, then add to your 
 
 ```bash
 openssl dhparam 2048 > dhparams.pem
-docker buildx build -f Dockerfile.hitch -t cc/hitch .
 ```
 
 Maintaining certificates (including creating and renewing them) is done
@@ -81,8 +84,8 @@ docker compose run --rm cloudflare
 docker run --rm cc/cloudflare --version
 ```
 
-You have to build the certbot and hitch images but currently
-varnish uses standard images so no build step required.
+You have to build the certbot (or cloudflare) image but currently
+hitch and varnish use standard images so no build step required.
 
 *At this point you should be ready to attempt to request some certificates.*
 
