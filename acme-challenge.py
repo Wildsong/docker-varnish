@@ -18,21 +18,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         # We expect only Let's Encrypt requests here, anything else is probably a mistake in default.vcl
         if self.path.startswith('/.well-known/acme-challenge'):
-            super().do_GET() # This maps the request to a file
-
-        elif self.path == '/':
-            # This custom response is used to test if the server is up.
-            self.send_response(200, message="Response received")
+            #super().do_GET() # This maps the request to a file
+            path = '/www' + self.path
+            #path = '/home/gis/docker/varnish/acme-challenge/test.html'
+            with open(path, "r") as fp:
+                text = '\n'.join(fp.readlines())
+            self.send_response(200, message="OK")
             self.send_header("Content-type", "text/html")
-            self.send_header('X-SERVER','ACME')
+            self.send_header("Content-Length", len(text))
+            self.send_header('X-SERVICE','ACME')
             self.end_headers()
-            self.wfile.write(bytes(f"<html><body><h1>Acme challenge server for Varnish</h1></body></html>", "utf-8"))
+            self.wfile.write(bytes(text, 'utf-8'))
+            return
 
-        else:
-            self.send_response(404, message='BAD REQUEST')
-            self.send_header("Content-type", "text/html")
-            self.end_headers()
-            self.wfile.write(bytes(f"<html><body><h1>Challenge failed 404</h1>req=\"{self.path}\"</body></html>", "utf-8"))
+        self.send_response(404, message='BAD REQUEST')
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.wfile.write(bytes(f"<html><body><h1>Challenge failed 404</h1>req=\"{self.path}\"</body></html>", "utf-8"))
         return
 
 with http.server.HTTPServer(("", PORT), Handler) as httpd:
