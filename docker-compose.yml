@@ -76,35 +76,34 @@ services:
 #          - challenger
 
   ####################################################################################
-  # This service does not start automatically, it is run either as a separate command
+  # The certbot service does not start automatically, it is run either as a separate command
   # or from crontab to renew certificates.
 
-  certbot:
-    image: cc/certbot
+  dnsmadeeasy:
+    image: cc/dnsmadeeasy
     build:
-      dockerfile: Dockerfile.certbot
+      dockerfile: Dockerfile.dnsmadeeasy
       context: .
     volumes:
       - certs:/etc/letsencrypt:rw
       - backup:/var/lib/letsencrypt:rw
-      # certbot writes a file here, then let's encrypt queries it via certbot-challenge
-      - ${PWD}/acme-challenge:/www/.well-known/acme-challenge:rw
     profiles: 
-      - "certbot" # Don't start automatically
+      - "dnsmadeeasy" # Don't start automatically
 
       # Read options here https://eff-certbot.readthedocs.io/en/stable/using.html#configuration-file
     command:
       - "certonly" # Obtain certificate but don't try to install it.
       # options
-      #- "--dry-run" # Uncomment this for testing.
-      #- "--quiet" # Seems noisy even with this set.
-      - "-m ${EMAIL}"
+      #- "--dry-run" # Uncomment this for testing. It might throw errors with DNS Made Easy.
+      - "--quiet"
       - "--noninteractive"
+      - "-m ${EMAIL}"
       - "--agree-tos"
-      - "--webroot"
-      - "--webroot-path=/www"
+      - "--dns-dnsmadeeasy"
+      - "--dns-dnsmadeeasy-credentials"
+      - "/usr/local/lib/dnsmadeeasy.ini"
       - "--domains=${DOMAINS}"
-      - "--deploy-hook=/etc/letsencrypt/renewal-hooks/deploy/bundle.sh"
+      - "--deploy-hook=/etc/letsencrypt/bundle.sh"
       - "--disable-hook-validation"
       - "--max-log-backups=0"
       - "--allow-subset-of-names"
@@ -125,7 +124,7 @@ services:
     command:
       - "certonly" # Obtain certificate but don't try to install it.
       # options
-      #- "--dry-run" # Uncomment this for testing. It will throw errors with cloudflare
+      - "--dry-run" # Uncomment this for testing. It will throw errors with cloudflare
       - "--quiet"
       - "--noninteractive"
       - "-m ${EMAIL}"
@@ -140,32 +139,34 @@ services:
       - "--allow-subset-of-names"
     restart: never
     
-  dnsmadeeasy:
-    image: cc/dnsmadeeasy
+  certbot:
+    image: cc/certbot
     build:
-      dockerfile: Dockerfile.dnsmadeeasy
+      dockerfile: Dockerfile.certbot
       context: .
     volumes:
       - certs:/etc/letsencrypt:rw
       - backup:/var/lib/letsencrypt:rw
+      # certbot writes a file here, then let's encrypt queries it via certbot-challenge
+      - ${PWD}/acme-challenge:/www/.well-known/acme-challenge:rw
     profiles: 
-      - "dnsmadeeasy" # Don't start automatically
+      - "certbot" # Don't start automatically
 
       # Read options here https://eff-certbot.readthedocs.io/en/stable/using.html#configuration-file
     command:
       - "certonly" # Obtain certificate but don't try to install it.
       # options
-      - "--dry-run" # Uncomment this for testing. It might throw errors with DNS Made Easy.
-      - "--quiet"
-      - "--noninteractive"
+      - "--dry-run" # Uncomment this for testing.
+      #- "--quiet" # Seems noisy even with this set.
       - "-m ${EMAIL}"
+      - "--noninteractive"
       - "--agree-tos"
-      - "--dns-dnsmadeeasy"
-      - "--dns-dnsmadeeasy-credentials"
-      - "/usr/local/lib/dnsmadeeasy.ini"
+      - "--webroot"
+      - "--webroot-path=/www"
       - "--domains=${DOMAINS}"
-      - "--deploy-hook=/etc/letsencrypt/bundle.sh"
+      - "--deploy-hook=/etc/letsencrypt/renewal-hooks/deploy/bundle.sh"
       - "--disable-hook-validation"
       - "--max-log-backups=0"
       - "--allow-subset-of-names"
     restart: never
+
