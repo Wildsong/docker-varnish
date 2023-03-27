@@ -8,10 +8,11 @@ import std;
 #import dynamic;
 
 # Let's Encrypt challenge server
-backend default {
-    .host = "[challenger]";
-    .port = "8000";
-}
+# Obsolete
+#backend default {
+#    .host = "[challenger]";
+#    .port = "8000";
+#}
 
 ##-###############################################################
 ## These are running in separate containers

@@ -7,11 +7,12 @@ import std;
 # import vmod_dynamic for better backend name resolution, no idea how this works yet so it's commented out.
 #import dynamic;
 
-# Let's Encrypt challenge server
-backend default {
-    .host = "[challenger]";
-    .port = "8000";
-}
+## Let's Encrypt challenge server
+# We use an API now so this is obsolete
+#backend default {
+#    .host = "[challenger]";
+#    .port = "8000";
+#}
 
 ##-###############################################################
 ## These are running in separate containers

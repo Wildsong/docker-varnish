@@ -8,10 +8,9 @@ Varnish and Hitch communicate using the "PROXY" protocol.
 TIL there is built in support for TLS now so everything I did with hitch is no longer needed.
 I leave work in 15 minutes so I will not look at it today. 
 
-As a separate process certbot manages certificates from the host.
-There is a tiny web server that answers challenge requests.
-
-There is support for Cloudflare DNS as an option.
+There are options for "DNS Made Easy", "Cloudflare", and nothing, which uses a local web server.
+The challenge web server option is commented out right now since there is no reason to run it
+if using one of the API options.
 
 ## Prerequisites
 
@@ -54,6 +53,8 @@ Follow the [correct VCL syntax](http://varnish-cache.org/docs/7.2/users-guide/vc
 
 The default.vcl file just has the mininum needed to bootstrap getting certificates for hitch.
 
+To use DNS Made Easy challenges, you have to set up a dnsmadeeasy.ini file. See the sample.
+
 To use Cloudflare DNS challenges, you have to set up a cloudflare.ini file. See the sample.
 
 ```bash
@@ -72,16 +73,24 @@ docker cp bundle.sh hitch:/certs/renewal-hooks/deploy
 # Check your work, you should see the files you added
 docker run --rm -v letsencrypt_certs:/certs debian ls -Rl /certs
 less 
-# IF you use webroot auth
+
+# IF you use "DNS Made Easy" API
+docker buildx build -f Dockerfile.dnsmadeeasy -t cc/dnsmadeeasy .
+# run the certbot
+docker compose run --rm dnsmadeeasy
+docker run --rm cc/dnsmadeeasy --version
+
+# ELSE you use Cloudflare API
+docker buildx build -f Dockerfile.cloudflare -t cc/cloudflare .
+docker compose run --rm cloudflare
+docker run --rm cc/cloudflare --version
+
+# ELSE you use webroot auth
+# You also will need to uncomment blocks in docker-compose.yml and default.*.vcl
 docker buildx build -f Dockerfile.certbot -t cc/certbot .
 docker buildx build -f Dockerfile.challenge -t cc/challenge .
 docker compose run --rm certbot
 docker run --rm cc/certbot --version
-
-# ELSE you use cloudflare plugin
-docker buildx build -f Dockerfile.cloudflare -t cc/cloudflare .
-docker compose run --rm cloudflare
-docker run --rm cc/cloudflare --version
 ```
 
 You have to build the certbot (or cloudflare) image but currently

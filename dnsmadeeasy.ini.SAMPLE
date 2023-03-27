@@ -1,0 +1,8 @@
+# 1. Copy this file to dnsmadeeasy.ini
+# 2. Edit it.
+# 3. Build. This should do it: docker compose --profile=dnsmadeasy build
+# 4. This step intentionally left blank.
+
+dns_dnsmadeeasy_api_key = PUTYOURTOKENHERE
+dns_dnsmadeeasy_secret_key = PUTYOURSECRETHERE
+
