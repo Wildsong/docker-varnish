@@ -124,8 +124,7 @@ services:
     command:
       - "certonly" # Obtain certificate but don't try to install it.
       # options
-      - "--dry-run" # Uncomment this for testing. It will throw errors with cloudflare
-      - "--quiet"
+      #- "--dry-run" # This will throw errors with cloudflare. Modestly useless.      - "--quiet"
       - "--noninteractive"
       - "-m ${EMAIL}"
       - "--agree-tos"
