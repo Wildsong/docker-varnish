@@ -159,7 +159,17 @@ sub vcl_recv {
 #  set req.http.host = "giscache.clatsopcounty.gov";
 #  set req.backend_hint = d.backend("giscache.clatsopcounty.gov");
 
-  return (pipe); # Do no caching
+#  return (pipe); # Uncomment to deactivate caching
+  # Otherwise, cache everything (that is, all GET and HEAD requests)
+}
+
+# https://info.varnish-software.com/blog/how-to-set-and-override-ttl
+#
+sub vcl_backend_response {
+# This is how long something stays in cache, which in our case means RAM.
+# If the server hits RAM limits (starts paging) make this shorter.
+# It's possible to install an SSD, if you think it's needed.
+	set beresp.ttl = 10m;
 }
 
 
