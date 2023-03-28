@@ -18,6 +18,10 @@ vcl 4.1;
 ## You can even run them on separate machines if you want
 ## and reference them with [cc-HOSTNAME] and it should resolve.
 ## I tried using [localhost] but that's not working.
+##
+## The danger is using an internal Docker name, like "www" or "matomo",
+## because if those services are not running when you start Varnish then
+## Varnish will block.
 
 # The main landing page and some photo services (nginx)
 backend www {
