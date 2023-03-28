@@ -20,13 +20,13 @@ vcl 4.1;
 
 # The main landing page and photo services (nginx)
 backend www {
-	.host = "[cc-testmaps]";
+	.host = "cc-testmaps";
 	.port = "81";
 }
 
 # The Matomo services
 backend matomo {
-	.host = "[echo.clatsopcounty.gov]";
+	.host = "echo.clatsopcounty.gov";
 	.port = "82";
 }
 
@@ -34,23 +34,23 @@ backend matomo {
 
 # separate mapproxy services
 backend bulletin {
-	.host = "[cc-testmaps]";
+	.host = "cc-testmaps";
 	.port = "8884";
 }
 backend city_aerials {
-	.host = "[cc-testmaps]";
+	.host = "cc-testmaps";
 	.port = "8885";
 }
 backend county_aerials {
-	.host = "[cc-testmaps]";
+	.host = "cc-testmaps";
 	.port = "8886";
 }
 backend county_aerials_brief {
-	.host = "[cc-testmaps]";
+	.host = "cc-testmaps";
 	.port = "8887";
 }
 backend lidar {
-	.host = "[cc-testmaps]";
+	.host = "cc-testmaps";
 	.port = "8888";
 }
 
@@ -195,7 +195,7 @@ sub vcl_recv {
   # set the backend
 #  set req.backend_hint = d.backend("giscache.clatsopcounty.gov");
  
-#  return (pipe); # Do no caching
+#  return (pipe); # Uncomment this line to disable caching.
   # Cache everything (that is, all GET and HEAD requests)
 }
 
