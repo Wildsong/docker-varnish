@@ -33,7 +33,7 @@ docker network create varnish
 
 Hitch needs certificates. (That's why it exists after all, to do TLS.)
 
-You need to have a dhparams.pem file. It will be baked into the cc/certbot images;
+You need to have a dhparams.pem file. It will be baked into the certbot images;
 the deploy hook script will copy dhparams.pem into the certificate bundle.
 You should only have to create the dhparams.pem file one time, then add to your certs volume so that containers get get to it.
 
@@ -68,11 +68,10 @@ docker compose up -d
 # Install the DH PEM and "bundle" script files
 docker cp dhparams.pem hitch:/certs/
 docker exec hitch mkdir -p /certs/renewal-hooks/deploy/ 
-docker cp bundle.sh hitch:/certs/renewal-hooks/deploy
+docker cp bundle.sh varnish-hitch-1:/etc/letsencrypt/certs/renewal-hooks/deploy/
 
 # Check your work, you should see the files you added
 docker run --rm -v letsencrypt_certs:/certs debian ls -Rl /certs
-less 
 
 # IF you use "DNS Made Easy" API
 docker buildx build -f Dockerfile.dnsmadeeasy -t cc/dnsmadeeasy .
@@ -131,16 +130,18 @@ docker run --rm -v /etc/letsencrypt:/le:ro -v letsencrypt_certs:/certs:rw \
 You should be able to check the status of your certificates any time, note
 that you have to allow read/write access for this to work
 
+Change docker image as needed cc/dnsmadeeasy or cc/cloudflare or cc/certbot
+
 ```bash
-docker run --rm -v letsencrypt_certs:/etc/letsencrypt cc/certbot certificates
-docker run --rm -v letsencrypt_certs:/etc/letsencrypt cc/certbot show_account
+docker run --rm -v letsencrypt_certs:/etc/letsencrypt cc/dnsmadeeasy certificates
+docker run --rm -v letsencrypt_certs:/etc/letsencrypt cc/dnsmadeeasy show_account
 ```
 
-I trouble getting the Certbot container to run bundle.sh when it created
+I had trouble getting the Certbot container to run bundle.sh when it created
 a new set of certificate files and had to run it manually, you can do that with
 
 ```bash
-docker run --rm -v letsencrypt_certs:/etc/letsencrypt --entrypoint sh cc/certbot
+docker run -it --rm -v letsencrypt_certs:/etc/letsencrypt --entrypoint sh cc/dnsmadeeasy
 cd /etc/letsencrypt/live/NEWDOMAINNAME
 /etc/letsencrypt/renewal-hooks/deploy/bundle.sh
 
