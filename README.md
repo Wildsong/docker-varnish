@@ -42,20 +42,18 @@ openssl dhparam 2048 > dhparams.pem
 ```
 
 Maintaining certificates (including creating and renewing them) is done
-as a separate process. If you don't use Cloudflare for DNS,
-you have to start certbot_challenge,
-then build and test with these commands.
+as a separate workflow. If you don't use "DNS Made Easy" or Cloudflare for DNS,
+you have to start certbot_challenge to respond to queries from Let's Encrypt.
 
 I have three default.vcl files, when setting up new domains I leave it set to the
 default (default.vcl) then when I am moving into deployment, I set DEFAULT_VCL_FILE
 in the .env file based on what I am doing (testing, production, or at home testing)
-Follow the [correct VCL syntax](http://varnish-cache.org/docs/7.2/users-guide/vcl-syntax.html) There are many many things you can do with Varnish, I have barely started learning it.
+Follow the [correct VCL syntax](http://varnish-cache.org/docs/7.2/users-guide/vcl-syntax.html) 
+There are many many things you can do with Varnish, I have barely started learning it.
 
-The default.vcl file just has the mininum needed to bootstrap getting certificates for hitch.
-
-To use DNS Made Easy challenges, you have to set up a dnsmadeeasy.ini file. See the sample.
-
-To use Cloudflare DNS challenges, you have to set up a cloudflare.ini file. See the sample.
+* The default.vcl file just has the mininum needed to bootstrap getting certificates for hitch.
+* To use DNS Made Easy challenges, you have to set up a dnsmadeeasy.ini file. See the sample.
+* To use Cloudflare DNS challenges, you have to set up a cloudflare.ini file. See the sample.
 
 ```bash
 # Create the volume, do this one time
@@ -66,9 +64,9 @@ docker volume create letsencrypt_certs
 docker compose up -d
 
 # Install the DH PEM and "bundle" script files
-docker cp dhparams.pem hitch:/certs/
-docker exec hitch mkdir -p /certs/renewal-hooks/deploy/ 
-docker cp bundle.sh varnish-hitch-1:/etc/letsencrypt/certs/renewal-hooks/deploy/
+docker cp dhparams.pem varnish-hitch-1:/certs/
+docker exec varnish-hitch-1 mkdir -p /certs/renewal-hooks/deploy/ 
+docker cp bundle.sh varnish-hitch-1:/certs/renewal-hooks/deploy/
 
 # Check your work, you should see the files you added
 docker run --rm -v letsencrypt_certs:/certs debian ls -Rl /certs
