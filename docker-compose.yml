@@ -93,11 +93,12 @@ services:
     command:
       - "certonly" # Obtain certificate but don't try to install it.
       # options
-      #- "--dry-run" # Uncomment this for testing. It might throw errors with DNS Made Easy.
+      - "--dry-run" # Uncomment this for testing. It might throw errors with DNS Made Easy.
       - "--quiet"
       - "--noninteractive"
       - "-m ${EMAIL}"
       - "--agree-tos"
+      - "--expand"
       - "--dns-dnsmadeeasy"
       - "--dns-dnsmadeeasy-credentials"
       - "/usr/local/lib/dnsmadeeasy.ini"
@@ -128,6 +129,7 @@ services:
       - "--noninteractive"
       - "-m ${EMAIL}"
       - "--agree-tos"
+      - "--expand"
       - "--dns-cloudflare"
       - "--dns-cloudflare-credentials"
       - "/usr/local/lib/cloudflare.ini"
@@ -160,6 +162,7 @@ services:
       - "-m ${EMAIL}"
       - "--noninteractive"
       - "--agree-tos"
+      - "--expand"
       - "--webroot"
       - "--webroot-path=/www"
       - "--domains=${DOMAINS}"
