@@ -1,5 +1,4 @@
 vcl 4.1;
-import std;
 
 # Remember to reload if you make changes to this file, you can just do this
 # de varnish varnishreload
@@ -20,15 +19,15 @@ import std;
 ## and reference them with [cc-HOSTNAME] and it should resolve.
 ## I tried using [localhost] but that's not working.
 
-# The main landing page and photo services (nginx)
+# The main landing page and some photo services (nginx)
 backend www {
-	.host = "[www]";
+	.host = "[cc-giscache]";
 	.port = "81";
 }
 
 # The Matomo services
 backend matomo {
-	.host = "[matomo]";
+	.host = "[echo.clatsopcounty.gov]";
 	.port = "80";
 }
 
@@ -55,28 +54,6 @@ backend lidar {
 	.host = "[cc-giscache]";
 	.port = "8888";
 }
-
-##-###############################################################
-## These are currently just here for testing, not deployed yet
-
-#backend arctic_monitor {
-#	.host = "[cc-giscache]";
-#	.port = "5000";
-#}
-#backend arctic_geodatabase {
-#	.host = "[cc-giscache]";
-#	.port = "5001";
-#}
-
-# Web App Builder and Experience Builder
-#backend wabde {
-#	.host = "[cc-giscache]";
-#	.port = "3344";
-#
-#backend exb {
-#	.host = "[cc-giscache]";
-#	.port = "3000";
-#}
 
 #sub vcl_init {
 # You can do fancy load balancing things if you have the hardware.
@@ -162,21 +139,6 @@ sub vcl_recv {
     } elseif (req.url ~ "^/\.well-known/acme-challenge/") {
 	    set req.backend_hint = default;
 
-#   } elseif (req.url ~ "^/webappbuilder") {
-#	set req.backend_hint = wabde;
-#
-#    } elseif (req.url ~ "^/builder") {
-#	set req.backend_hint = exb;
-#    } elseif (req.url ~ "^/page") {
-#	set req.backend_hint = exb;
-#
-#    } elseif (req.url ~ "/arctic") {
-#	set req.url = regsub(req.url, "/arctic", "/");
-#	set req.backend_hint = arctic_monitor;
-#    } elseif (req.url ~ "/geodatabase") {
-#	set req.url = regsub(req.url, "/geodatabase", "/");
-#	set req.backend_hint = arctic_geodatabase;
-
     } else {
 	# This handles the main landing page and the photos.
   		set req.backend_hint = www;
@@ -188,12 +150,6 @@ sub vcl_recv {
     set req.backend_hint = matomo;
   }
 
-  # Logging
-  if (std.port(server.ip) == 443) {
-	std.log("Client connected over TLS/SSL: " + server.ip);
-	std.syslog(6,"Client connected over TLS/SSL: " + server.ip);
-	std.timestamp("After std.syslog");
-  }
 
 # force the host header to match the backend (not all backends need it)
 #  set req.http.host = "giscache.clatsopcounty.gov";

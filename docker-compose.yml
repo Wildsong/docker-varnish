@@ -15,11 +15,12 @@ volumes:
 services:
 
 # Varnish and hitch will communicate over port 8443 over the proxy network
+# 2023-03-27 Note the "enterprise" (not free) version of Varnish has TLS built in.
+# I imagine eventually Hitch will be deprecated.
 
   # I listen for everything on port 443, using Let's Encrypt certificates
   # and then send everything over the PROXY connection to Varnish on port 8443
   hitch:
-    container_name: hitch
     image: hitch
     environment:
       TZ: 'America/Los_Angeles'
@@ -38,13 +39,11 @@ services:
   # I need to have port 80 visible so that I can redirect traffic to TLS.
   # Everything else comes in from hitch.
   varnish:
-    container_name: varnish
     image: varnish:stable
     environment:
       TZ: 'America/Los_Angeles'
     ports:
-      # Move to port 88 for testing on production server
-      - "80:80" # Certbot challenge service needs this open
+      - "80:80"
     volumes:
 #      - ./etc/default.vcl:/etc/varnish/default.vcl:ro      # Bootstrap your certificates.
       - ./etc/$DEFAULT_VCL_FILE:/etc/varnish/default.vcl:ro # Ready to run, good luck.
@@ -53,7 +52,7 @@ services:
     networks:
       proxy:
         aliases:
-          - varnish # hitch.conf needs this
+          - varnish
     restart: unless-stopped
 
   # This serves http content for certbot, running on port 8000.

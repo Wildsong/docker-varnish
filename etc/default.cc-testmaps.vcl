@@ -1,5 +1,5 @@
 vcl 4.1;
-import std;
+#import std;
 
 # Remember to reload if you make changes to this file, you can just do this
 # de varnish varnishreload
@@ -7,10 +7,8 @@ import std;
 # import vmod_dynamic for better backend name resolution, no idea how this works yet so it's commented out.
 #import dynamic;
 
-## Let's Encrypt challenge server
-# We use an API now so this is obsolete
 #backend default {
-#    .host = "[challenger]";
+#    .host = "cc-testmaps";
 #    .port = "8000";
 #}
 
@@ -22,14 +20,14 @@ import std;
 
 # The main landing page and photo services (nginx)
 backend www {
-	.host = "[www]";
+	.host = "[cc-testmaps]";
 	.port = "81";
 }
 
 # The Matomo services
 backend matomo {
 	.host = "[echo.clatsopcounty.gov]";
-	.port = "80";
+	.port = "82";
 }
 
 # -------------------------------------
@@ -85,6 +83,7 @@ backend lidar {
 #	new vdir = directors.round_robin();
 #	vdir.add_backend(cc-testmaps);
 #}
+
 
 sub vcl_recv {
 
@@ -172,34 +171,36 @@ sub vcl_recv {
 #	set req.url = regsub(req.url, "/geodatabase", "/");
 #	set req.backend_hint = arctic_geodatabase;
 
+
     } else {
-	# This handles the main landing page and the photos.
+	# This handles the main landing page and the bridge and waterway photos.
   		set req.backend_hint = www;
     }
+
 
   } elseif (req.http.host == "echo.clatsopcounty.gov") {
     set req.backend_hint = matomo;
   }
 
   # Logging
-  if (std.port(server.ip) == 443) {
-	std.log("Client connected over TLS/SSL: " + server.ip);
-	std.syslog(6,"Client connected over TLS/SSL: " + server.ip);
-	std.timestamp("After std.syslog");
-  }
+#  if (std.port(server.ip) == 443) {
+#	std.log("Client connected over TLS/SSL: " + server.ip);
+#	std.syslog(6,"Client connected over TLS/SSL: " + server.ip);
+#	std.timestamp("After std.syslog");
+#  }
 
   # force the host header to match the backend (not all backends need it,
   # but example.com does)
 #  set req.http.host = "giscache.clatsopcounty.gov";
   # set the backend
 #  set req.backend_hint = d.backend("giscache.clatsopcounty.gov");
-
-  if (req.method != "GET" && req.method != "HEAD") {
-	return (pass); # Don't cache
-  }
  
 #  return (pipe); # Do no caching
-  # Cache everything
+  # Cache everything (that is, all GET and HEAD requests)
 }
 
+# https://info.varnish-software.com/blog/how-to-set-and-override-ttl
+sub vcl_backend_response {
+	set beresp.ttl = 10m;
 
+}
