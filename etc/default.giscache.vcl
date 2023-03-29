@@ -1,17 +1,7 @@
 vcl 4.1;
 
 # Remember to reload if you make changes to this file, you can just do this
-# de varnish varnishreload
-
-# import vmod_dynamic for better backend name resolution, no idea how this works yet so it's commented out.
-#import dynamic;
-
-# Let's Encrypt challenge server
-# Obsolete
-#backend default {
-#    .host = "[challenger]";
-#    .port = "8000";
-#}
+# de varnish-varnish-1 varnishreload
 
 ##-###############################################################
 ## These are running in separate containers
@@ -25,37 +15,37 @@ vcl 4.1;
 
 # The main landing page and some photo services (nginx)
 backend www {
-	.host = "[cc-giscache]";
+	.host = "cc-giscache";
 	.port = "81";
 }
 
 # The Matomo services
 backend matomo {
-	.host = "[echo.clatsopcounty.gov]";
-	.port = "80";
+	.host = "echo.clatsopcounty.gov";
+	.port = "82";
 }
 
 # -------------------------------------
 
 # separate mapproxy services
 backend bulletin {
-.host = "[cc-giscache]";
+	.host = "cc-giscache";
 	.port = "8884";
 }
 backend city_aerials {
-	.host = "[cc-giscache]";
+	.host = "cc-giscache";
 	.port = "8885";
 }
 backend county_aerials {
-	.host = "[cc-giscache]";
+	.host = "cc-giscache";
 	.port = "8886";
 }
 backend county_aerials_brief {
-	.host = "[cc-giscache]";
+	.host = "cc-giscache";
 	.port = "8887";
 }
 backend lidar {
-	.host = "[cc-giscache]";
+	.host = "cc-giscache";
 	.port = "8888";
 }
 
@@ -72,14 +62,8 @@ sub vcl_recv {
   # remove port number
   set req.http.Host = regsub(req.http.Host, ":[0-9]+$", "");
 
-  # I want my MapProxy URLs to be like
-  # https://giscache.clatsopcounty.gov/mapproxy/SERVICE
-  # but my backend server has no "mapproxy" in it.
-  # I can change the backend or be more sophisticated here.
-  # https://giscache.co.clatsop.or.us/SERVICE
-
   if (req.http.host == "giscache.clatsopcounty.gov"
-   || req.http.host == "giscache.co.clatsop.or.us") # deprecated
+   || req.http.host == "giscache.co.clatsop.or.us") # deprecated, someday it will go away
   {
 
   # For MapProxy, each service has to add the service name part of the path back in
@@ -153,11 +137,6 @@ sub vcl_recv {
   {
     set req.backend_hint = matomo;
   }
-
-
-# force the host header to match the backend (not all backends need it)
-#  set req.http.host = "giscache.clatsopcounty.gov";
-#  set req.backend_hint = d.backend("giscache.clatsopcounty.gov");
 
 #  return (pipe); # Uncomment to deactivate caching
   # Otherwise, cache everything (that is, all GET and HEAD requests)

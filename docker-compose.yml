@@ -93,7 +93,7 @@ services:
     command:
       - "certonly" # Obtain certificate but don't try to install it.
       # options
-      - "--dry-run" # Uncomment this for testing. It might throw errors with DNS Made Easy.
+      #- "--dry-run" # Uncomment this for testing. It might throw errors with DNS Made Easy.
       - "--quiet"
       - "--noninteractive"
       - "-m ${EMAIL}"
@@ -124,7 +124,8 @@ services:
     command:
       - "certonly" # Obtain certificate but don't try to install it.
       # options
-      #- "--dry-run" # This will throw errors with cloudflare. Modestly useless.      - "--quiet"
+      #- "--dry-run" # This will throw errors with cloudflare. Modestly useless.
+      - "--quiet"
       - "--noninteractive"
       - "-m ${EMAIL}"
       - "--agree-tos"
