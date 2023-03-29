@@ -41,9 +41,12 @@ You should only have to create the dhparams.pem file one time, then add to your 
 openssl dhparam 2048 > dhparams.pem
 ```
 
-Maintaining certificates (including creating and renewing them) is done
-as a separate workflow. If you don't use "DNS Made Easy" or Cloudflare for DNS,
-you have to start certbot_challenge to respond to queries from Let's Encrypt.
+==== Maintaining certificates ====
+
+(including creating and renewing them) is done as a separate
+workflow. If you don't use "DNS Made Easy" or Cloudflare for DNS, you
+have to start certbot_challenge to respond to queries from Let's
+Encrypt.
 
 I have three default.vcl files, when setting up new domains I leave it set to the
 default (default.vcl) then when I am moving into deployment, I set DEFAULT_VCL_FILE
@@ -93,22 +96,69 @@ docker run --rm cc/certbot --version
 You have to build the certbot (or cloudflare) image but currently
 hitch and varnish use standard images so no build step required.
 
-*At this point you should be ready to attempt to request some certificates.*
+**Note on combined "expanded" certificates**
+When I first started working with Let's Encrypt I was using one
+certificate for each name, so for example I had one for
+giscache.clatsopcounty.gov and one for giscache.co.clatsop.or.us. Then
+I found the "--expand" option, which takes the full list of names and
+returns one certificate that works for all of them. This made life
+easier.
 
-***When you are done testing, remember to comment out the "--dry-run" option in the compose file, so that it will really fetch certificates (or renew them.)***
+My .env file has this line:
 
-The folder "acme-challenge" is used by certbot to store "challenge" files.
-The web server 'certbot_-_challenge' will serve them at
-http://YOURSERVERNAME/.well-known/acme-challenge/. (Put your own server name in there.
-You should be able to see the index.html file there and one called test.html.
+DOMAINS="echo.clatsopcounty.gov,echo.co.clatsop.or.us,giscache.clatsopcounty.gov,giscache.co.clatsop.or.us"
+
+Because "echo" is listed first, the live certificate will be listed under that name and
+all the other names will be included. List all certifcates and see for yourself what you have.
+
+```bash
+docker run --rm -v letsencrypt_certs:/etc/letsencrypt cc/certbot certificates
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Found the following certs:
+  Certificate Name: echo.clatsopcounty.gov
+    Serial Number: 3a8cc8c03449e1b27bc713c01175a017a91
+    Key Type: ECDSA
+    Domains: echo.clatsopcounty.gov echo.co.clatsop.or.us giscache.clatsopcounty.gov giscache.co.clatsop.or.us
+    Expiry Date: 2023-06-27 14:24:03+00:00 (VALID: 89 days)
+    Certificate Path: /etc/letsencrypt/live/echo.clatsopcounty.gov/fullchain.pem
+    Private Key Path: /etc/letsencrypt/live/echo.clatsopcounty.gov/privkey.pem
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+```
+
+TODO - If I was really diligent I'd script something to create the
+hitch.conf file from that output.
+
+Currently there are still some old certificate directories hanging
+around on my servers but you can see which ones are in use by using
+the "certbot certificates" command. You can delete the others, then
+they will stop showing up in the output of the "certonly" command used
+to renew everything.
+
+If you have a reason to pull many certificates, remove the '--expand'
+option in docker-compose.yml.
+
+*At this point you should be ready to attempt to request some certificates.* (Or maybe just one, combined.)
+
+***When you are done testing, remember to comment out the "--dry-run"
+   option in the compose file, so that it will really fetch
+   certificates (or renew them.)***
+
+The folder "acme-challenge" is used by certbot to store "challenge"
+files.  The web server 'certbot_-_challenge' will serve them at
+http://YOURSERVERNAME/.well-known/acme-challenge/. (Put your own
+server name in there.  You should be able to see the index.html file
+there and one called test.html.
 
 Varnish will proxy this page at your FQDN. (Whatever you set up in .env)
 
-Cloudflare does not need the challenge server, which means it can run fully
-isolated behind a firewall, but I can't always choose which DNS service is used.
-Using webroot means I have to expose a web server for certbot to work. Normally
-the challenge web server does nothing but handle challenges. 
-Having one devoted to that decouples certificate management from serving web pages.
+Cloudflare does not need the challenge server, which means it can run
+fully isolated behind a firewall, but I can't always choose which DNS
+service is used.  Using webroot means I have to expose a web server
+for certbot to work. Normally the challenge web server does nothing
+but handle challenges.  Having one devoted to that decouples
+certificate management from serving web pages.
 
 #### Existing certificates?? You can try to copy them.
 
