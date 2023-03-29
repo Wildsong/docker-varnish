@@ -140,6 +140,7 @@ a new set of certificate files and had to run it manually, you can do that with
 
 ```bash
 docker run -it --rm -v letsencrypt_certs:/etc/letsencrypt --entrypoint sh cc/dnsmadeeasy
+docker run -it --rm -v letsencrypt_certs:/etc/letsencrypt --entrypoint sh cc/cloudflare
 cd /etc/letsencrypt/live/NEWDOMAINNAME
 /etc/letsencrypt/renewal-hooks/deploy/bundle.sh
 
