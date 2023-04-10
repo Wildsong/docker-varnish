@@ -45,8 +45,16 @@ backend county_aerials_brief {
 	.port = "8887";
 }
 backend lidar {
-	.host = "cc-giscache";
+	.host = "cc-testmaps";
 	.port = "8888";
+}
+backend nhd {
+	.host = "cc-testmaps";
+	.port = "8889";
+}
+backend nwi {
+	.host = "cc-testmaps";
+	.port = "8890";
 }
 
 #sub vcl_init {
@@ -100,6 +108,21 @@ sub vcl_recv {
 		set req.url = regsub(req.url, "/lidar-2020/", "/");
 		set req.backend_hint = lidar;
 		set req.http.X-Script-Name = "/lidar-2020";
+    } elseif (req.url ~ "^/lidar/") {
+		set req.url = regsub(req.url, "/lidar/", "/");
+		set req.backend_hint = lidar;
+		set req.http.X-Script-Name = "/lidar";
+
+    } elseif (req.url ~ "^/usgs-nhd/") {
+		set req.url = regsub(req.url, "/usgs-nhd/", "/");
+		set req.backend_hint = nhd;
+		set req.http.X-Script-Name = "/usgs-nhd";
+
+    } elseif (req.url ~ "^/usfws-nwi/") {
+		set req.url = regsub(req.url, "/usfws-nwi/", "/");
+		set req.backend_hint = nwi;
+		set req.http.X-Script-Name = "/usfws-nwi";
+
 
     } elseif (req.url ~ "^/$") {
         set req.backend_hint = www;

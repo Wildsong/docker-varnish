@@ -53,6 +53,14 @@ backend lidar {
 	.host = "cc-testmaps";
 	.port = "8888";
 }
+backend nhd {
+	.host = "cc-testmaps";
+	.port = "8889";
+}
+backend nwi {
+	.host = "cc-testmaps";
+	.port = "8890";
+}
 
 ##-###############################################################
 ## These are currently just here for testing, not deployed yet
@@ -90,12 +98,6 @@ sub vcl_recv {
   # remove port number
   set req.http.Host = regsub(req.http.Host, ":[0-9]+$", "");
 
-  # I want my MapProxy URLs to be like
-  # https://giscache.clatsopcounty.gov/mapproxy/SERVICE
-  # but my backend server has no "mapproxy" in it.
-  # I can change the backend or be more sophisticated here.
-  # https://giscache.co.clatsop.or.us/SERVICE
-
   if (req.http.host == "foxtrot.clatsopcounty.gov") {
 
   # For MapProxy, each service has to add the service name part of the path back in
@@ -112,17 +114,9 @@ sub vcl_recv {
 		set req.url = regsub(req.url, "^/bulletin78_79/", "/");
 		set req.backend_hint = bulletin;
 		set req.http.X-Script-Name = "^/bulletin78_79";
-    } elseif (req.url ~ "^/bulletin78_79$") {
-		set req.url = regsub(req.url, "^/bulletin78_79", "/");
-		set req.backend_hint = bulletin;
-		set req.http.X-Script-Name = "/bulletin78_79";
 
     } elseif (req.url ~ "^/city-aerials/") {
 		set req.url = regsub(req.url, "^/city-aerials/", "/");
-		set req.backend_hint = city_aerials;
-		set req.http.X-Script-Name = "/city-aerials";
-    } elseif (req.url ~ "^/city-aerials$") {
-		set req.url = regsub(req.url, "^/city-aerials", "/");
 		set req.backend_hint = city_aerials;
 		set req.http.X-Script-Name = "/city-aerials";
 	
@@ -130,17 +124,9 @@ sub vcl_recv {
 		set req.url = regsub(req.url, "^/county-aerials/", "/");
 		set req.backend_hint = county_aerials;
 		set req.http.X-Script-Name = "/county-aerials";
-    } elseif (req.url ~ "^/county-aerials$") {
-		set req.url = regsub(req.url, "^/county-aerials", "/");
-		set req.backend_hint = county_aerials;
-		set req.http.X-Script-Name = "/county-aerials";
 
     } elseif (req.url ~ "^/county-aerials-brief/") {
 		set req.url = regsub(req.url, "^/county-aerials-brief/", "/");
-		set req.backend_hint = county_aerials_brief;
-		set req.http.X-Script-Name = "/county-aerials-brief";
-    } elseif (req.url ~ "^/county-aerials-brief$") {
-		set req.url = regsub(req.url, "^/county-aerials-brief", "/");
 		set req.backend_hint = county_aerials_brief;
 		set req.http.X-Script-Name = "/county-aerials-brief";
 
@@ -148,13 +134,20 @@ sub vcl_recv {
 		set req.url = regsub(req.url, "/lidar-2020/", "/");
 		set req.backend_hint = lidar;
 		set req.http.X-Script-Name = "/lidar-2020";
-	} elseif (req.url ~ "^/lidar-2020$") {
-		set req.url = regsub(req.url, "/lidar-2020", "/");
+    } elseif (req.url ~ "^/lidar/") {
+		set req.url = regsub(req.url, "/lidar/", "/");
 		set req.backend_hint = lidar;
-		set req.http.X-Script-Name = "/lidar-2020";
+		set req.http.X-Script-Name = "/lidar";
 
-    } elseif (req.url ~ "^/\.well-known/acme-challenge/") {
-	    set req.backend_hint = default;
+    } elseif (req.url ~ "^/usgs-nhd/") {
+		set req.url = regsub(req.url, "/usgs-nhd/", "/");
+		set req.backend_hint = nhd;
+		set req.http.X-Script-Name = "/usgs-nhd";
+
+    } elseif (req.url ~ "^/usfws-nwi/") {
+		set req.url = regsub(req.url, "/usfws-nwi/", "/");
+		set req.backend_hint = nwi;
+		set req.http.X-Script-Name = "/usfws-nwi";
 
 #   } elseif (req.url ~ "^/webappbuilder") {
 #	set req.backend_hint = wabde;
@@ -199,8 +192,7 @@ sub vcl_recv {
   # Cache everything (that is, all GET and HEAD requests)
 }
 
-# https://info.varnish-software.com/blog/how-to-set-and-override-ttl
 sub vcl_backend_response {
-	set beresp.ttl = 10m;
-
+	# https://info.varnish-software.com/blog/how-to-set-and-override-ttl
+	set beresp.ttl = 20m;
 }
