@@ -57,10 +57,6 @@ backend nhd {
 	.host = "cc-testmaps";
 	.port = "8889";
 }
-backend nwi {
-	.host = "cc-testmaps";
-	.port = "8890";
-}
 
 ##-###############################################################
 ## These are currently just here for testing, not deployed yet
@@ -143,11 +139,6 @@ sub vcl_recv {
 		set req.url = regsub(req.url, "/usgs-nhd/", "/");
 		set req.backend_hint = nhd;
 		set req.http.X-Script-Name = "/usgs-nhd";
-
-    } elseif (req.url ~ "^/usfws-nwi/") {
-		set req.url = regsub(req.url, "/usfws-nwi/", "/");
-		set req.backend_hint = nwi;
-		set req.http.X-Script-Name = "/usfws-nwi";
 
 #   } elseif (req.url ~ "^/webappbuilder") {
 #	set req.backend_hint = wabde;
