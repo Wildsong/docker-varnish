@@ -80,17 +80,9 @@ sub vcl_recv {
 		set req.url = regsub(req.url, "^/bulletin78_79/", "/");
 		set req.backend_hint = bulletin;
 		set req.http.X-Script-Name = "^/bulletin78_79";
-    } elseif (req.url ~ "^/bulletin78_79$") {
-		set req.url = regsub(req.url, "^/bulletin78_79", "/");
-		set req.backend_hint = bulletin;
-		set req.http.X-Script-Name = "/bulletin78_79";
 
     } elseif (req.url ~ "^/city-aerials/") {
 		set req.url = regsub(req.url, "^/city-aerials/", "/");
-		set req.backend_hint = city_aerials;
-		set req.http.X-Script-Name = "/city-aerials";
-    } elseif (req.url ~ "^/city-aerials$") {
-		set req.url = regsub(req.url, "^/city-aerials", "/");
 		set req.backend_hint = city_aerials;
 		set req.http.X-Script-Name = "/city-aerials";
 	
@@ -98,17 +90,9 @@ sub vcl_recv {
 		set req.url = regsub(req.url, "^/county-aerials/", "/");
 		set req.backend_hint = county_aerials;
 		set req.http.X-Script-Name = "/county-aerials";
-    } elseif (req.url ~ "^/county-aerials$") {
-		set req.url = regsub(req.url, "^/county-aerials", "/");
-		set req.backend_hint = county_aerials;
-		set req.http.X-Script-Name = "/county-aerials";
 
     } elseif (req.url ~ "^/county-aerials-brief/") {
 		set req.url = regsub(req.url, "^/county-aerials-brief/", "/");
-		set req.backend_hint = county_aerials_brief;
-		set req.http.X-Script-Name = "/county-aerials-brief";
-    } elseif (req.url ~ "^/county-aerials-brief$") {
-		set req.url = regsub(req.url, "^/county-aerials-brief", "/");
 		set req.backend_hint = county_aerials_brief;
 		set req.http.X-Script-Name = "/county-aerials-brief";
 
@@ -116,24 +100,21 @@ sub vcl_recv {
 		set req.url = regsub(req.url, "/lidar-2020/", "/");
 		set req.backend_hint = lidar;
 		set req.http.X-Script-Name = "/lidar-2020";
-	} elseif (req.url ~ "^/lidar-2020$") {
-		set req.url = regsub(req.url, "/lidar-2020", "/");
-		set req.backend_hint = lidar;
-		set req.http.X-Script-Name = "/lidar-2020";
 
     } elseif (req.url ~ "^/$") {
-	    set req.backend_hint = www;
+        set req.backend_hint = www;
 
-    } elseif (req.url ~ "^/\.well-known/acme-challenge/") {
-	    set req.backend_hint = default;
+# We're not using webroot challenges anymore.
+#    } elseif (req.url ~ "^/\.well-known/acme-challenge/") {
+#	    set req.backend_hint = default;
 
     } else {
 	# This handles the main landing page and the photos.
-  		set req.backend_hint = www;
+	set req.backend_hint = www;
     }
 
   } elseif (req.http.host == "echo.clatsopcounty.gov"
-   		 || req.http.host == "echo.co.clatsop.or.us") # deprecated
+   	 || req.http.host == "echo.co.clatsop.or.us") # deprecated
   {
     set req.backend_hint = matomo;
   }
@@ -142,13 +123,10 @@ sub vcl_recv {
   # Otherwise, cache everything (that is, all GET and HEAD requests)
 }
 
-# https://info.varnish-software.com/blog/how-to-set-and-override-ttl
-#
 sub vcl_backend_response {
 # This is how long something stays in cache, which in our case means RAM.
 # If the server hits RAM limits (starts paging) make this shorter.
-# It's possible to install an SSD, if you think it's needed.
-	set beresp.ttl = 10m;
+# Refer to https://info.varnish-software.com/blog/how-to-set-and-override-ttl
+# It's possible to use an SSD as cache, if you think it's needed.
+    set beresp.ttl = 15m;
 }
-
-
