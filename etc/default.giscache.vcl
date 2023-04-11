@@ -45,15 +45,15 @@ backend county_aerials_brief {
 	.port = "8887";
 }
 backend lidar {
-	.host = "cc-testmaps";
+	.host = "cc-giscache";
 	.port = "8888";
 }
 backend nhd {
-	.host = "cc-testmaps";
+	.host = "cc-giscache";
 	.port = "8889";
 }
 backend wetlands {
-	.host = "cc-testmaps";
+	.host = "cc-giscache";
 	.port = "8890";
 }
 
