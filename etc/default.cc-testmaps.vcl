@@ -1,5 +1,5 @@
 vcl 4.1;
-#import std;
+import std;
 
 # Remember to reload if you make changes to this file, you can just do this
 # de varnish varnishreload
@@ -53,9 +53,13 @@ backend lidar {
 	.host = "cc-testmaps";
 	.port = "8888";
 }
-backend nhd {
+backend usgs {
 	.host = "cc-testmaps";
 	.port = "8889";
+}
+backend wetlands {
+	.host = "cc-testmaps";
+	.port = "8890";
 }
 
 ##-###############################################################
@@ -126,7 +130,7 @@ sub vcl_recv {
 		set req.backend_hint = county_aerials_brief;
 		set req.http.X-Script-Name = "/county-aerials-brief";
 
-    } elseif (req.url ~ "^/lidar-2020/") {
+    } elseif (req.url ~ "^/lidar-2020/") { # DEPRECATED NAME
 		set req.url = regsub(req.url, "/lidar-2020/", "/");
 		set req.backend_hint = lidar;
 		set req.http.X-Script-Name = "/lidar-2020";
@@ -137,8 +141,13 @@ sub vcl_recv {
 
     } elseif (req.url ~ "^/usgs-nhd/") {
 		set req.url = regsub(req.url, "/usgs-nhd/", "/");
-		set req.backend_hint = nhd;
+		set req.backend_hint = usgs;
 		set req.http.X-Script-Name = "/usgs-nhd";
+
+    } elseif (req.url ~ "^/wetlands/") {
+		set req.url = regsub(req.url, "/wetlands/", "/");
+		set req.backend_hint = wetlands;
+		set req.http.X-Script-Name = "/wetlands";
 
 #   } elseif (req.url ~ "^/webappbuilder") {
 #	set req.backend_hint = wabde;
@@ -167,11 +176,11 @@ sub vcl_recv {
   }
 
   # Logging
-#  if (std.port(server.ip) == 443) {
-#	std.log("Client connected over TLS/SSL: " + server.ip);
-#	std.syslog(6,"Client connected over TLS/SSL: " + server.ip);
-#	std.timestamp("After std.syslog");
-#  }
+  if (std.port(server.ip) == 443) {
+	std.log("Client connected over TLS/SSL: " + server.ip);
+	std.syslog(6,"Client connected over TLS/SSL: " + server.ip);
+	std.timestamp("After std.syslog");
+  }
 
   # force the host header to match the backend (not all backends need it,
   # but example.com does)

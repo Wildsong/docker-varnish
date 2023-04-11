@@ -52,6 +52,10 @@ backend nhd {
 	.host = "cc-testmaps";
 	.port = "8889";
 }
+backend wetlands {
+	.host = "cc-testmaps";
+	.port = "8890";
+}
 
 #sub vcl_init {
 # You can do fancy load balancing things if you have the hardware.
@@ -100,7 +104,7 @@ sub vcl_recv {
 		set req.backend_hint = county_aerials_brief;
 		set req.http.X-Script-Name = "/county-aerials-brief";
 
-    } elseif (req.url ~ "^/lidar-2020/") {
+    } elseif (req.url ~ "^/lidar-2020/") { # DEPRECATED
 		set req.url = regsub(req.url, "/lidar-2020/", "/");
 		set req.backend_hint = lidar;
 		set req.http.X-Script-Name = "/lidar-2020";
@@ -114,6 +118,10 @@ sub vcl_recv {
 		set req.backend_hint = nhd;
 		set req.http.X-Script-Name = "/usgs-nhd";
 
+    } elseif (req.url ~ "^/wetlands/") {
+		set req.url = regsub(req.url, "/wetlands/", "/");
+		set req.backend_hint = wetlands;
+		set req.http.X-Script-Name = "/wetlands";
 
     } elseif (req.url ~ "^/$") {
         set req.backend_hint = www;
