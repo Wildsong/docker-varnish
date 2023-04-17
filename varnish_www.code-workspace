@@ -13,13 +13,13 @@
 			"path": "../matomo"
 		},
 		{
-			"path": "../pihole"
+			"path": "../../Documents/source/metadata_api"
 		},
 		{
-			"path": "../psono"
+			"path": "../bjoern"
 		},
 		{
-			"path": "../homeassistant"
+			"path": "../../Documents/source/docker-python-bjoern"
 		}
 	],
 	"settings": {}
