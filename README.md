@@ -208,12 +208,11 @@ crontab -e
 # Renew certificates every morning and then restart hitch so it gets new certs, if any
 23 4  * * *  cd $HOME/docker/varnish && docker compose run --rm certbot 
 34 5  * * *  cd $HOME/docker/varnish && docker compose restart hitch 
-
-
+```
 
 ## Deployment
 
-In case you have not done it already, start it, and watch the logs to see
+In case you have not done it already, run the project, and watch the logs to see
 if it is working.
 
 ```bash
@@ -232,7 +231,9 @@ restart all the services.
 
 ### Streaming the Varnish logfile
 
-You can watch all the extensive and detailed log messages by doing
+You can watch all the extensive and detailed log messages by doing this. 
+This is more useful on the development machine, since you will have to sort out
+what traffic you are interested in on the production machine.
 
 ```bash
     docker exec varnish varnishlog
@@ -263,7 +264,7 @@ https://docs.varnish-software.com/tutorials/hitch-letsencrypt/
 
 ### Test supported URLs
 
-My unittest.py script is now in the "www" project.
+The unittest.py script is now in the "www" project.
 
 ### Debugging
 
@@ -274,6 +275,29 @@ My unittest.py script is now in the "www" project.
 docker exec -it varnish varnishlog
 curl -v https://foxtrot.clatsopcounty.gov/
 ```
+
+## Notes on WMS metadata etc...
+
+When I do a get on a base URL with Esri I get a nice information page.
+When I do that on Maproxy, I get a 404 error. How can I fix this?
+
+First off, here is the URL I used as an example of an ESRI server.
+
+Doing a get of this vector tile service returns a JSON file.
+https://basemaps.arcgis.com/arcgis/rest/services/OpenStreetMap_v2/VectorTileServer
+
+ESRI points right at the source for the Map version, centered on the US
+https://www.openstreetmap.org/#map=5/38.007/-95.844
+
+Here is a WNS service, which returns the classic ugly XML output
+https://ch-osm-services.geodatasolutions.ch/geoserver/ows?service=wms&version=1.3.0&request=GetCapabilities&srsName=EPSG:2056
+and the classic ugly "no service" XML page if you ask for https://ch-osm-services.geodatasolutions.ch/geoserver/ows without any parameters
+
+http://imagery.oregonexplorer.info/arcgis/rest/services/NAIP_2009/NAIP_2009_WM/ImageServer
+https://imagery.oregonexplorer.info/arcgis/services/NAIP_2009/NAIP_2009_WM/ImageServer/WMSServer?request=GetCapabilities&service=WMS
+
+https://imagery.oregonexplorer.info/arcgis/rest/services/OSIP_2018/OSIP_2018_SL/ImageServer
+
 
 ## Resources
 
