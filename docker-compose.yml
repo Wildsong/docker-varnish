@@ -2,15 +2,20 @@ version: "3.9"
 
 networks:
   proxy:
-    name: ${NETWORK_NAME}
+    name: varnish_stack
     external: true
 
 volumes:
   certs:
     name: letsencrypt_certs
+
+configs:
+  varnish_config:
     external: true
-  backup:
-    name: letsencrypt_backups
+  hitch_config:
+    file: etc/hitch.conf
+  certificate_bundle:
+    file: certs/hitch-bundle.pem
 
 services:
 
@@ -21,154 +26,58 @@ services:
   # I listen for everything on port 443, using Let's Encrypt certificates
   # and then send everything over the PROXY connection to Varnish on port 8443
   hitch:
+#    image: nginx:latest # Hacky way to test settings (won't keep crashing and restarting)
     image: hitch
-    environment:
-      TZ: 'America/Los_Angeles'
+    configs:
+      - source: hitch_config
+        target: /etc/hitch/hitch.conf
+      - source: certificate_bundle
+        target: /etc/hitch/certificate-bundle.pem
     ports:
       # Move to port 444 if you want to do testing on production server
       - "443:443"
-    volumes:
-      - ./etc/${HITCH_FILE}:/etc/hitch/hitch.conf:ro
-      - certs:/certs:rw
-    depends_on:
-      - varnish
     networks:
-      - proxy
-    restart: unless-stopped
+      proxy: 
+        aliases:
+          - hitch
+#    healthcheck:
+#      no curl is installed here
+#      test: curl --fail https://localhost:443/ || exit 1
+#      interval: 60s
+#      retries: 3
+#      start_period: 20s
+#      timeout: 10s
+    deploy:
+      mode: global
+      update_config:
+        order: 'stop-first'
+      restart_policy:
+        condition: any
+        delay: 10s # Wait between restart attempts
+        window: 30s # Wait this long before deciding if restart was successful.
 
   # I need to have port 80 visible so that I can redirect traffic to TLS.
   # Everything else comes in from hitch.
   varnish:
-    image: varnish:stable
-    environment:
-      TZ: 'America/Los_Angeles'
+    image: ghcr.io/clatsopcounty/varnish:latest
+    configs:
+      - source: varnish_config
+        target: /etc/varnish/default.vcl
     ports:
       - "80:80"
-    volumes:
-#      - ./etc/default.vcl:/etc/varnish/default.vcl:ro      # Bootstrap your certificates.
-      - ./etc/$DEFAULT_VCL_FILE:/etc/varnish/default.vcl:ro # Ready to run, good luck.
-      - ./etc:/etc/varnish/varnish.d:ro
-    tmpfs: "/var/lib/varnish/varnishd:rw,exec"
+#    tmpfs: "/var/lib/varnish/varnishd:rw,exec"
     networks:
-      proxy:
-        aliases:
-          - varnish
-    restart: unless-stopped
-
-  # This serves http content for certbot, running on port 8000.
-  # Certbot has to be able to write to its docs folder, but the http server does not.
-# We're using APIs now instead of this.
-#  certbot_challenge:
-#    container_name: certbot_challenge
-#    image: cc/challenge
-#    build: 
-#      dockerfile: Dockerfile.challenge
-#      context: .
-#    ports:
-#      - "8000:8000" # Only needed for curl tests
-#    volumes:
-#      - ./acme-challenge:/www/.well-known/acme-challenge:ro
-#    networks:
-#      proxy:
-#        aliases:
-#          - acme-challenge
-#          - challenger
-
-  ####################################################################################
-  # The certbot service does not start automatically, it is run either as a separate command
-  # or from crontab to renew certificates.
-
-  dnsmadeeasy:
-    image: cc/dnsmadeeasy
-    build:
-      dockerfile: Dockerfile.dnsmadeeasy
-      context: .
-    volumes:
-      - certs:/etc/letsencrypt:rw
-      - backup:/var/lib/letsencrypt:rw
-    profiles: 
-      - "dnsmadeeasy" # Don't start automatically
-
-      # Read options here https://eff-certbot.readthedocs.io/en/stable/using.html#configuration-file
-    command:
-      - "certonly" # Obtain certificate but don't try to install it.
-      # options
-      #- "--dry-run" # Uncomment this for testing. It might throw errors with DNS Made Easy.
-      - "--quiet"
-      - "--noninteractive"
-      - "-m ${EMAIL}"
-      - "--agree-tos"
-      - "--expand"
-      - "--dns-dnsmadeeasy"
-      - "--dns-dnsmadeeasy-credentials"
-      - "/usr/local/lib/dnsmadeeasy.ini"
-      - "--domains=${DOMAINS}"
-      - "--deploy-hook=/etc/letsencrypt/renewal-hooks/deploy/bundle.sh"
-      - "--disable-hook-validation"
-      - "--max-log-backups=0"
-      - "--allow-subset-of-names"
-    restart: never
-
-  cloudflare:
-    image: cc/cloudflare
-    build:
-      dockerfile: Dockerfile.cloudflare
-      context: .
-    volumes:
-      - certs:/etc/letsencrypt:rw
-      - backup:/var/lib/letsencrypt:rw
-    profiles: 
-      - "cloudflare" # Don't start automatically
-
-      # Read options here https://eff-certbot.readthedocs.io/en/stable/using.html#configuration-file
-    command:
-      - "certonly" # Obtain certificate but don't try to install it.
-      # options
-      #- "--dry-run" # This will throw errors with cloudflare. Modestly useless.
-      - "--quiet"
-      - "--noninteractive"
-      - "-m ${EMAIL}"
-      - "--agree-tos"
-      - "--expand"
-      - "--dns-cloudflare"
-      - "--dns-cloudflare-credentials"
-      - "/usr/local/lib/cloudflare.ini"
-      - "--domains=${DOMAINS}"
-      - "--deploy-hook=/etc/letsencrypt/renewal-hooks/deploy/bundle.sh"
-      - "--disable-hook-validation"
-      - "--max-log-backups=0"
-      - "--allow-subset-of-names"
-    restart: never
-    
-  certbot:
-    image: cc/certbot
-    build:
-      dockerfile: Dockerfile.certbot
-      context: .
-    volumes:
-      - certs:/etc/letsencrypt:rw
-      - backup:/var/lib/letsencrypt:rw
-      # certbot writes a file here, then let's encrypt queries it via certbot-challenge
-      - ${PWD}/acme-challenge:/www/.well-known/acme-challenge:rw
-    profiles: 
-      - "certbot" # Don't start automatically
-
-      # Read options here https://eff-certbot.readthedocs.io/en/stable/using.html#configuration-file
-    command:
-      - "certonly" # Obtain certificate but don't try to install it.
-      # options
-      - "--dry-run" # Uncomment this for testing.
-      #- "--quiet" # Seems noisy even with this set.
-      - "-m ${EMAIL}"
-      - "--noninteractive"
-      - "--agree-tos"
-      - "--expand"
-      - "--webroot"
-      - "--webroot-path=/www"
-      - "--domains=${DOMAINS}"
-      - "--deploy-hook=/etc/letsencrypt/renewal-hooks/deploy/bundle.sh"
-      - "--disable-hook-validation"
-      - "--max-log-backups=0"
-      - "--allow-subset-of-names"
-    restart: never
-
+      - proxy
+    healthcheck:
+      interval: 60s
+      retries: 3
+      start_period: 20s
+      timeout: 10s
+    deploy:
+      mode: global
+      update_config:
+        order: 'stop-first'
+      restart_policy:
+        condition: any
+        delay: 10s # Wait between restart attempts
+        window: 30s # Wait this long before deciding if restart was successful.

@@ -1,33 +1,66 @@
 # docker-varnish
 
+This project wraps Varnish in Docker Swarm.
+There are two services, Varnish and Hitch, so it's set up
+as a Docker Stack.
+
 Varnish is used here mostly as a reverse proxy for Mapproxy.
 Hitch does the TLS part, as a proxy between Varnish and the world.
 Varnish and Hitch communicate using the "PROXY" protocol.
 
-2023-03-24
-TIL there is built in support for TLS now so everything I did with hitch is no longer needed.
-I leave work in 15 minutes so I will not look at it today. 
-
-There are options for "DNS Made Easy", "Cloudflare", and nothing, which uses a local web server.
+There are options here for "DNS Made Easy", "Cloudflare", and nothing, which uses a local web server.
 The challenge web server option is commented out right now since there is no reason to run it
 if using one of the API options.
 
+## Serving configuration files using "docker config"
+
+In Docker Compose, I used environment variables to control which files would be used in volumes in that does not work with Docker Stack.
+
+I need this to work in Swarm, and I also need it to be customized
+for my different configurations. The file that the Varnish
+container sees at "/etc/varnishd/default.vcl" is loaded from
+an external config that you set up.
+
+### How do I install in the config space for Swarm?
+
+Two of the configs are loaded from files when you deploy the stack,
+etc/hitch.conf and certs/hitch-bundle.pem. 
+
+The Varnish file /etc/varnish/default.vcl is loaded from the config you specify.
+
+   docker config create varnish_config etc/default.cc-testmaps.vcl
+
+The contents are encrypted, I just overwrite them to update it.
+
+### How it works
+
+   docker service create --name www-test --config varnish_config --replicas 1 --publish 8010:80 nginx:latest
+   docker ps | grep www-test  # find ID
+   docker exec -it <ID> bash
+
+In the bash shell the "mount" command shows that the file
+is mounted as a tmpfs on /varnish_config and I can "cat" it.
+
+### How do I get the services to use the files?
+
+The files will be available as files, I just have to teach the container to use them instead of the defaults. That's done with the config option, in my test, like this.
+
+   docker service rm www-test
+   docker service create --name www-test --config src=varnish_config,target="/etc/varnish/default.vcl" --replicas 1 --publish 8010:80 nginx:latest
+   docker ps | grep www-test  # find ID
+   docker exec -it <ID> bash
+
+This is cool.
+
 ## Prerequisites
 
-Your firewall must route traffic for port 80 and 443 to the machine running Varnish.
-After that, it can proxy services that are behind the firewall. 
+Your firewall must route traffic for port 80 and 443 to the machine running Varnish. After that, it can proxy services that are behind the firewall.
 
 ### Network
 
-Create the internal network, I happened to name it "varnish".
-This network is how Varnish and the backend services talk to each other
-when they are on the same machine. (Varnish can proxy any server anywhere.)
+Create the internal network, I named it "varnish_stack".
 
-```bash
-docker network create varnish
-```
-
-(It is up to you to tell all your backend services to use this network.)
+   docker network create -d overlay --attachable varnish_stack
 
 ### Set up "Let's Encrypt"
 
@@ -37,11 +70,9 @@ You need to have a dhparams.pem file. It will be baked into the certbot images;
 the deploy hook script will copy dhparams.pem into the certificate bundle.
 You should only have to create the dhparams.pem file one time, then add to your certs volume so that containers get get to it.
 
-```bash
-openssl dhparam 2048 > dhparams.pem
-```
+   openssl dhparam 2048 > dhparams.pem
 
-==== Maintaining certificates ====
+#### Maintaining certificates
 
 (including creating and renewing them) is done as a separate
 workflow. If you don't use "DNS Made Easy" or Cloudflare for DNS, you
@@ -58,45 +89,62 @@ There are many many things you can do with Varnish, I have barely started learni
 * To use DNS Made Easy challenges, you have to set up a dnsmadeeasy.ini file. See the sample.
 * To use Cloudflare DNS challenges, you have to set up a cloudflare.ini file. See the sample.
 
-```bash
-# Create the volume, do this one time
-docker volume create letsencrypt_certs
+Create the volume, do this one time
 
-# Varnish and the challenge server both have to be running
-# even if you don't have an certs yet.
-docker compose up -d
+   docker volume create letsencrypt_certs
 
-# Install the DH PEM and "bundle" script files
-docker cp dhparams.pem varnish-hitch-1:/certs/
-docker exec varnish-hitch-1 mkdir -p /certs/renewal-hooks/deploy/ 
-docker cp bundle.sh varnish-hitch-1:/certs/renewal-hooks/deploy/
+Varnish (and the challenge server if you can't use DNSMadeEasy or CloudFlare)
+even if you don't have any certs yet.
 
-# Check your work, you should see the files you added
-docker run --rm -v letsencrypt_certs:/certs debian ls -Rl /certs
+   docker stack deploy -c docker-compose.yml varnish
 
-# IF you use "DNS Made Easy" API
-docker buildx build -f Dockerfile.dnsmadeeasy -t cc/dnsmadeeasy .
-# run the certbot
-docker compose run --rm dnsmadeeasy
-docker run --rm cc/dnsmadeeasy --version
+Install the DH PEM and "bundle" script files
 
-# ELSE you use Cloudflare API
-docker buildx build -f Dockerfile.cloudflare -t cc/cloudflare .
-docker compose run --rm cloudflare
-docker run --rm cc/cloudflare --version
+   docker cp dhparams.pem varnish-hitch-1:/certs/
+   docker exec varnish-hitch-1 mkdir -p /certs/renewal-hooks/deploy/ 
+   docker cp bundle.sh varnish-hitch-1:/certs/renewal-hooks/deploy/
 
-# ELSE you use webroot auth
-# You also will need to uncomment blocks in docker-compose.yml and default.*.vcl
-docker buildx build -f Dockerfile.certbot -t cc/certbot .
-docker buildx build -f Dockerfile.challenge -t cc/challenge .
-docker compose run --rm certbot
-docker run --rm cc/certbot --version
-```
+Check your work, you should see the files you added
 
-You have to build the certbot (or cloudflare) image but currently
-hitch and varnish use standard images so no build step required.
+   docker run --rm -v letsencrypt_certs:/certs debian ls -Rl /certs
 
-**Note on combined "expanded" certificates**
+### Build certbot and create certificates
+
+Build the correct Certbot image for your configuration. I use DNSMadeEasy.
+**There are secrets in this image, so do not send it to a public registry.**
+
+Using DNSMadeEasy
+
+   docker buildx build -f Dockerfile.dnsmadeeasy -t cc/certbot .
+   docker compose run --rm dnsmadeeasy
+   docker run --rm cc/certbot --version
+
+ELSE use Cloudflare API
+   docker buildx build -f Dockerfile.cloudflare -t cc/certbot .
+   docker compose run --rm cloudflare
+   docker run --rm cc/certbot --version
+
+ELSE use webroot auth
+You also will need to uncomment blocks in docker-compose.yml and default.*.vcl
+
+   docker buildx build -f Dockerfile.certbot -t cc/certbot .
+   docker buildx build -f Dockerfile.challenge -t cc/challenge .
+   docker compose run --rm certbot
+   docker run --rm cc/certbot --version
+
+### Images for Varnish and Hitch
+
+Hitch currently uses a standard image.
+You have to build the image for Varnish.
+
+   docker buildx build -t ghcr.io/clatsopcounty/varnish .
+   docker push ghcr.io/clatsopcounty/varnish
+
+(This relies on being logged in to github already.
+"docker login ghcr.io -u bwilsoncc" for example)
+
+## Note on combined "expanded" certificates
+
 When I first started working with Let's Encrypt I was using one
 certificate for each name, so for example I had one for
 giscache.clatsopcounty.gov and one for giscache.co.clatsop.or.us. Then
@@ -160,42 +208,23 @@ for certbot to work. Normally the challenge web server does nothing
 but handle challenges.  Having one devoted to that decouples
 certificate management from serving web pages.
 
-#### Existing certificates?? You can try to copy them.
+### What if I have existing certificates?
 
-It's not worth it. Get everything set up and switch over. Just test Certbot
-with --dry-run until you are comfortable that it's pulling certificates correctly.
+You can try to copy them but it's not worth it. Get everything set up and switch over. Just test Certbot with --dry-run until you are comfortable that it's pulling certificates correctly.
 
-But if you want to try, you can do this. 
+But if you want to try, you can do this.
 Mount the existing folder in a container and the new Docker volume, then do a simple copy.
 
-```bash
-docker run --rm -v /etc/letsencrypt:/le:ro -v letsencrypt_certs:/certs:rw \
-    debian cp -rp /le/ /certs
-```
+   docker run --rm -v /etc/letsencrypt:/le:ro -v letsencrypt_certs:/certs:rw \
+      debian cp -rp /le/ /certs
 
 ### Checking on the status of certificates
 
 You should be able to check the status of your certificates any time, note
 that you have to allow read/write access for this to work
 
-Change docker image as needed cc/dnsmadeeasy or cc/cloudflare or cc/certbot
-
-```bash
-docker run --rm -v letsencrypt_certs:/etc/letsencrypt cc/dnsmadeeasy certificates
-docker run --rm -v letsencrypt_certs:/etc/letsencrypt cc/dnsmadeeasy show_account
-```
-
-I had trouble getting the Certbot container to run bundle.sh when it created
-a new set of certificate files and had to run it manually, you can do that with
-
-```bash
-docker run -it --rm -v letsencrypt_certs:/etc/letsencrypt --entrypoint sh cc/dnsmadeeasy
-docker run -it --rm -v letsencrypt_certs:/etc/letsencrypt --entrypoint sh cc/cloudflare
-cd /etc/letsencrypt/live/NEWDOMAINNAME
-/etc/letsencrypt/renewal-hooks/deploy/bundle.sh
-
-This process creates a hitch-bundle.pem file, which is used by Hitch.
-It should run automatically now though.
+   docker run --rm -v ./certs:/etc/letsencrypt cc/certbot certificates
+   docker run --rm -v ./certs:/etc/letsencrypt cc/certbot show_account
 
 #### Run it periodically
 
@@ -203,41 +232,24 @@ Let's Encrypt certificates are good for 90 days, so run the certbot from crontab
 but don't do it more than once a day or you will get banned. I doubt restarting
 hitch is required, it's supposed to see changes but I do it anyway.
 
-```bash
-crontab -e
-# Renew certificates every morning and then restart hitch so it gets new certs, if any
-23 4  * * *  cd $HOME/docker/varnish && docker compose run --rm certbot 
-34 5  * * *  cd $HOME/docker/varnish && docker compose restart hitch 
-```
+   crontab -e
+   # Renew certificates every morning
+   23 4  * * *  cd $HOME/docker/varnish && ./renew_dnsmadeeasy.sh 
 
 ## Deployment
 
-In case you have not done it already, run the project, and watch the logs to see
-if it is working.
+   docker stack deploy --with-registry-auth -c docker-compose.yml varnish
 
-```bash
-docker compose up -d
-docker compose logs --follow
-```
+Make sure both of the services are starting! But give it some time! (A minute is plenty)
 
-### How to reload just varnish
-
-You can do this after editing the default.vcl file, so that you don't have to 
-restart all the services.
-
-```bash
-   docker exec varnish varnishreload
-```
+   docker service ls
 
 ### Streaming the Varnish logfile
 
-You can watch all the extensive and detailed log messages by doing this. 
-This is more useful on the development machine, since you will have to sort out
-what traffic you are interested in on the production machine.
+You can watch all the extensive and detailed log messages by doing this. This is more useful on the development machine, since you will have to sort out what traffic you are interested in on the production machine.
 
-```bash
-    docker exec varnish varnishlog
-```
+   docker ps | grep varnish_varnish #find the id
+   de <ID> varnishlog
 
 ## TESTS
 
@@ -268,13 +280,19 @@ The unittest.py script is now in the "www" project.
 
 ### Debugging
 
+#### Won't start?
+
+Try running in docker compose, in foreground, it's chatty,
+
+   docker compose up
+
+#### Check varnishlog
+
 1. In terminal #1, watch the very detailed log,
 2. In terminal #2, send a request with curl and stand back.
 
-```bash
-docker exec -it varnish varnishlog
-curl -v https://foxtrot.clatsopcounty.gov/
-```
+   docker exec -it varnish varnishlog
+   curl -v https://foxtrot.clatsopcounty.gov/
 
 ## Notes on WMS metadata etc...
 
@@ -313,3 +331,8 @@ Cloudflare plugin needs a token Zone - Zone - Read and Zone - DNS - Edit and I s
 
 Certbot set up on Debian
 https://certbot.eff.org/instructions?ws=nginx&os=debiantesting
+
+## TO DO LIST
+
+* Add a healthcheck for Hitch
+* Make a better healthcheck for Varnish
