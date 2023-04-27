@@ -5,7 +5,7 @@ docker compose -f docker-compose-certbot.yml run --rm dnsmadeeasy
 CERTIFICATE_BUNDLE=./certs/hitch-bundle.pem
 #CERTIFICATE_BUNDLE=./sample.env # For testing
 
-if [[ -f "$CERTIFICATE_BUNDLE" ]]; then 
+if [ -f "$CERTIFICATE_BUNDLE" ]; then 
 
     # If the file is less than a day old, tell hitch.
     age=$(stat -c %Y $CERTIFICATE_BUNDLE)
@@ -23,4 +23,8 @@ if [[ -f "$CERTIFICATE_BUNDLE" ]]; then
         docker service ps varnish_hitch
         docker service ps varnish_varnish
     fi
+
+else
+    echo "ERROR; NO CERTIFICATE BUNDLE FOUND. \"${CERTIFICATE_BUNDLE}\""
+    exit 1
 fi
