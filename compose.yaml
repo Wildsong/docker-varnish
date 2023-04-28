@@ -1,10 +1,7 @@
-version: "3.9"
-
-networks:
-  proxy:
-    name: varnish_stack
-    external: true
-
+#
+#  This is intended to set up Varnish to run under Docker Swarm.
+#  It probably works with Docker Compose, too.
+#
 volumes:
   certs:
     name: letsencrypt_certs
@@ -36,10 +33,10 @@ services:
     ports:
       # Move to port 444 if you want to do testing on production server
       - "443:443"
-    networks:
-      proxy: 
-        aliases:
-          - hitch
+#    networks:
+#      varnish_default: 
+#        aliases:
+#          - hitch
 #    healthcheck:
 #      no curl is installed here
 #      test: curl --fail https://localhost:443/ || exit 1
@@ -65,9 +62,9 @@ services:
         target: /etc/varnish/default.vcl
     ports:
       - "80:80"
-#    tmpfs: "/var/lib/varnish/varnishd:rw,exec"
-    networks:
-      - proxy
+    tmpfs: "/var/lib/varnish/varnishd:rw,exec"
+#    networks:
+#      - proxy
     healthcheck:
       interval: 60s
       retries: 3

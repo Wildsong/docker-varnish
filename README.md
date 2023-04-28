@@ -96,7 +96,7 @@ Create the volume, do this one time
 Varnish (and the challenge server if you can't use DNSMadeEasy or CloudFlare)
 even if you don't have any certs yet.
 
-   docker stack deploy -c docker-compose.yml varnish
+   docker stack deploy -c compose.yaml varnish
 
 Install the DH PEM and "bundle" script files
 
@@ -116,21 +116,13 @@ Build the correct Certbot image for your configuration. I use DNSMadeEasy.
 Using DNSMadeEasy
 
    docker buildx build -f Dockerfile.dnsmadeeasy -t cc/certbot .
-   docker compose run --rm dnsmadeeasy
    docker run --rm cc/certbot --version
+   ./run_certbot.sh
 
 ELSE use Cloudflare API
    docker buildx build -f Dockerfile.cloudflare -t cc/certbot .
-   docker compose run --rm cloudflare
    docker run --rm cc/certbot --version
-
-ELSE use webroot auth
-You also will need to uncomment blocks in docker-compose.yml and default.*.vcl
-
-   docker buildx build -f Dockerfile.certbot -t cc/certbot .
-   docker buildx build -f Dockerfile.challenge -t cc/challenge .
-   docker compose run --rm certbot
-   docker run --rm cc/certbot --version
+   ./run_cloudflare_certbot.sh
 
 ### Images for Varnish and Hitch
 
@@ -185,7 +177,7 @@ they will stop showing up in the output of the "certonly" command used
 to renew everything.
 
 If you have a reason to pull many certificates, remove the '--expand'
-option in docker-compose.yml.
+option in cerbot.yaml.
 
 *At this point you should be ready to attempt to request some certificates.* (Or maybe just one, combined.)
 
@@ -238,7 +230,7 @@ hitch is required, it's supposed to see changes but I do it anyway.
 
 ## Deployment
 
-   docker stack deploy --with-registry-auth -c docker-compose.yml varnish
+   docker stack deploy --with-registry-auth -c compose.yaml varnish
 
 Make sure both of the services are starting! But give it some time! (A minute is plenty)
 
