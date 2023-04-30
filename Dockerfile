@@ -6,4 +6,4 @@ RUN apt-get update -y && \
         curl \
         iputils-ping
 
-HEALTHCHECK CMD curl --fail http://localhost/ || exit 1
+HEALTHCHECK CMD curl --fail http://localhost/ping || exit 1

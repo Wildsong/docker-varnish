@@ -1,25 +1,17 @@
 vcl 4.1;
 import std;
 
-# If you change this file and you are using 'docker config'
-# you will have to reload the config and then re-deploy to update.
-
-#backend default {
-#    .host = "cc-testmaps";
-#    .port = "8000";
-#}
+# The main landing page and photo services (nginx)
+backend default {
+    .host = "cc-testmaps";
+    .port = "81";
+}
 
 ##-###############################################################
 ## These are running in separate containers
 ## You can even run them on separate machines if you want
 ## and reference them with [cc-HOSTNAME] and it should resolve.
 ## I tried using [localhost] but that's not working.
-
-# The main landing page and photo services (nginx)
-backend www {
-	.host = "cc-testmaps";
-	.port = "81";
-}
 
 # The Matomo services
 #backend matomo {
@@ -101,8 +93,22 @@ backend exb {
 
 sub vcl_recv {
 
-  # remove port number
-  set req.http.Host = regsub(req.http.Host, ":[0-9]+$", "");
+    if (req.http.upgrade ~ "(?i)websocket") {
+        return (pipe); # Don't cache websocket traffic
+    }
+
+    # remove port number
+    set req.http.Host = regsub(req.http.Host, ":[0-9]+$", "");
+
+    if (req.url ~ "^/ping$") {
+        # This responds to ANY URL ending in ping, including localhost
+        # respond HTTP 200 to /ping requests, used by healtcheck in Docker
+        # See https://serverfault.com/questions/599159/varnish-as-a-web-server
+        return (synth(700, "Ping"));
+    }
+
+    # Everything here currently is supported via a host header.
+    # The path is rewritten as required by the backend service provider.
 
   if (req.http.host == "foxtrot.clatsopcounty.gov") {
 
@@ -114,7 +120,7 @@ sub vcl_recv {
   # If you get it wrong, the client will start asking for tiles
   # with (for example) "/wms" instead of "/city-aerials/wms"
   # and that will show up in the varnish logs as 404 BAD REQUEST
-  # because Varnish will use the default, backend_www
+  # because Varnish will use the default
 
     if (req.url ~ "^/bulletin78_79/") {
 		set req.url = regsub(req.url, "^/bulletin78_79/", "/");
@@ -181,7 +187,7 @@ sub vcl_recv {
 
     } else {
 	# This handles the main landing page and the bridge and waterway photos.
-  		set req.backend_hint = www;
+  		set req.backend_hint = default;
     }
 
   } elseif (req.http.host == "echo.clatsopcounty.gov") {
@@ -205,7 +211,45 @@ sub vcl_recv {
   # Cache everything (that is, all GET and HEAD requests)
 }
 
+sub vcl_synth {
+    set resp.http.Retry-After = "5";
+    if (resp.status == 700) {
+        set resp.status = 200;
+        set resp.reason = "OK";
+        set resp.http.Content-Type = "text/plain;";
+        synthetic( {"OK"} );
+        return (deliver);
+    }
+    if (resp.status == 701) {
+        set resp.status = 204;
+        set resp.reason = "No Content";
+        set resp.http.Content-Type = "text/plain;";
+        synthetic( {""} );
+        return (deliver);
+    }
+    if (resp.status == 751) {
+        set resp.http.Location = resp.reason;
+        set resp.status = 301;
+        set resp.reason = "Moved Permanently";
+        return (deliver);
+    }
+
+    if (resp.status == 752) {
+        set resp.http.Location = resp.reason;
+        set resp.status = 302;
+        set resp.reason = "Found";
+        return (deliver);
+    }
+
+    return (deliver);
+}
+
 sub vcl_backend_response {
-	# https://info.varnish-software.com/blog/how-to-set-and-override-ttl
-	set beresp.ttl = 20m;
+    # Happens after we have read the response headers from the backend.
+    #
+    # Here you clean the response headers, removing silly Set-Cookie headers
+    # and other mistakes your backend does.
+
+    # https://info.varnish-software.com/blog/how-to-set-and-override-ttl
+    set beresp.ttl = 20m;
 }

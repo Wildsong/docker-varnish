@@ -8,11 +8,12 @@ volumes:
 
 configs:
   varnish_config:
-    external: true
+    file: ./etc/default.wildsong.vcl
+#    external: true
   hitch_config:
-    file: etc/hitch.conf
+    file: ./etc/hitch.conf
   certificate_bundle:
-    file: certs/hitch-bundle.pem
+    file: ./certs/hitch-bundle.pem
 
 services:
 
@@ -33,10 +34,6 @@ services:
     ports:
       # Move to port 444 if you want to do testing on production server
       - "443:443"
-#    networks:
-#      varnish_default: 
-#        aliases:
-#          - hitch
 #    healthcheck:
 #      no curl is installed here
 #      test: curl --fail https://localhost:443/ || exit 1
@@ -63,8 +60,6 @@ services:
     ports:
       - "80:80"
     tmpfs: "/var/lib/varnish/varnishd:rw,exec"
-#    networks:
-#      - proxy
     healthcheck:
       interval: 60s
       retries: 3

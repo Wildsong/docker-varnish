@@ -14,7 +14,7 @@ vcl 4.1;
 ## Varnish will block.
 
 # The main landing page and some photo services (nginx)
-backend www {
+backend default {
 	.host = "cc-giscache";
 	.port = "81";
 }
@@ -67,8 +67,22 @@ backend wetlands {
 
 sub vcl_recv {
 
-  # remove port number
-  set req.http.Host = regsub(req.http.Host, ":[0-9]+$", "");
+    if (req.http.upgrade ~ "(?i)websocket") {
+        return (pipe); # Don't cache websocket traffic
+    }
+
+    # remove port number
+    set req.http.Host = regsub(req.http.Host, ":[0-9]+$", "");
+
+    if (req.url ~ "^/ping$") {
+        # This responds to ANY URL ending in ping, including localhost
+        # respond HTTP 200 to /ping requests, used by healtcheck in Docker
+        # See https://serverfault.com/questions/599159/varnish-as-a-web-server
+        return (synth(700, "Ping"));
+    }
+
+    # Everything here currently is supported via a host header.
+    # The path is rewritten as required by the backend service provider.
 
   if (req.http.host == "giscache.clatsopcounty.gov"
    || req.http.host == "giscache.co.clatsop.or.us") # deprecated, someday it will go away
@@ -82,7 +96,7 @@ sub vcl_recv {
   # If you get it wrong, the client will start asking for tiles
   # with (for example) "/wms" instead of "/city-aerials/wms"
   # and that will show up in the varnish logs as 404 BAD REQUEST
-  # because Varnish will use the default, backend_www
+  # because Varnish will use the default backend
 
     if (req.url ~ "^/bulletin78_79/") {
 		set req.url = regsub(req.url, "^/bulletin78_79/", "/");
@@ -123,32 +137,61 @@ sub vcl_recv {
 		set req.backend_hint = wetlands;
 		set req.http.X-Script-Name = "/wetlands";
 
-    } elseif (req.url ~ "^/$") {
-        set req.backend_hint = www;
-
-# We're not using webroot challenges anymore.
-#    } elseif (req.url ~ "^/\.well-known/acme-challenge/") {
-#	    set req.backend_hint = default;
-
     } else {
 	# This handles the main landing page and the photos.
-	set req.backend_hint = www;
+        set req.backend_hint = default;
     }
 
   } elseif (req.http.host == "echo.clatsopcounty.gov"
    	 || req.http.host == "echo.co.clatsop.or.us") # deprecated
   {
-    set req.backend_hint = matomo;
+      set req.backend_hint = matomo;
   }
 
 #  return (pipe); # Uncomment to deactivate caching
   # Otherwise, cache everything (that is, all GET and HEAD requests)
 }
 
-sub vcl_backend_response {
-# This is how long something stays in cache, which in our case means RAM.
-# If the server hits RAM limits (starts paging) make this shorter.
-# Refer to https://info.varnish-software.com/blog/how-to-set-and-override-ttl
-# It's possible to use an SSD as cache, if you think it's needed.
-    set beresp.ttl = 15m;
+sub vcl_synth {
+    set resp.http.Retry-After = "5";
+    if (resp.status == 700) {
+        set resp.status = 200;
+        set resp.reason = "OK";
+        set resp.http.Content-Type = "text/plain;";
+        synthetic( {"OK"} );
+        return (deliver);
+    }
+    if (resp.status == 701) {
+        set resp.status = 204;
+        set resp.reason = "No Content";
+        set resp.http.Content-Type = "text/plain;";
+        synthetic( {""} );
+        return (deliver);
+    }
+    if (resp.status == 751) {
+        set resp.http.Location = resp.reason;
+        set resp.status = 301;
+        set resp.reason = "Moved Permanently";
+        return (deliver);
+    }
+
+    if (resp.status == 752) {
+        set resp.http.Location = resp.reason;
+        set resp.status = 302;
+        set resp.reason = "Found";
+        return (deliver);
+    }
+
+    return (deliver);
 }
+
+sub vcl_backend_response {
+    # Happens after we have read the response headers from the backend.
+    #
+    # Here you clean the response headers, removing silly Set-Cookie headers
+    # and other mistakes your backend does.
+
+    # https://info.varnish-software.com/blog/how-to-set-and-override-ttl
+    set beresp.ttl = 20m;
+}
+

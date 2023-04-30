@@ -56,12 +56,6 @@ This is cool.
 
 Your firewall must route traffic for port 80 and 443 to the machine running Varnish. After that, it can proxy services that are behind the firewall.
 
-### Network
-
-Create the internal network, I named it "varnish_stack".
-
-   docker network create -d overlay --attachable varnish_stack
-
 ### Set up "Let's Encrypt"
 
 Hitch needs certificates. (That's why it exists after all, to do TLS.)
@@ -89,24 +83,12 @@ There are many many things you can do with Varnish, I have barely started learni
 * To use DNS Made Easy challenges, you have to set up a dnsmadeeasy.ini file. See the sample.
 * To use Cloudflare DNS challenges, you have to set up a cloudflare.ini file. See the sample.
 
-Create the volume, do this one time
-
-   docker volume create letsencrypt_certs
-
 Varnish (and the challenge server if you can't use DNSMadeEasy or CloudFlare)
 even if you don't have any certs yet.
 
    docker stack deploy -c compose.yaml varnish
 
-Install the DH PEM and "bundle" script files
-
-   docker cp dhparams.pem varnish-hitch-1:/certs/
-   docker exec varnish-hitch-1 mkdir -p /certs/renewal-hooks/deploy/ 
-   docker cp bundle.sh varnish-hitch-1:/certs/renewal-hooks/deploy/
-
-Check your work, you should see the files you added
-
-   docker run --rm -v letsencrypt_certs:/certs debian ls -Rl /certs
+   docker cp dhparams.pem certs/
 
 ### Build certbot and create certificates
 
@@ -233,6 +215,8 @@ hitch is required, it's supposed to see changes but I do it anyway.
    docker stack deploy --with-registry-auth -c compose.yaml varnish
 
 Make sure both of the services are starting! But give it some time! (A minute is plenty)
+Hitch will complain about not being able to find Varnish, and restart a few times before Varnish comes online.
+You can watch the "REPLICAS" column here and eventually it should show "1/1".
 
    docker service ls
 

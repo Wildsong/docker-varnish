@@ -1,11 +1,13 @@
 #!/bin/sh
 # NOTE there is no bash installed here!!
 
-# The certs volume is mounted /etc/letsencrypt on certbot
-# This file needs to be copied from ./certs into a docker config
-# when it changes.
+# The certs volume is accessible on both certbot and hitch.
+# It's mounted at /certs on hitch
+# and at /etc/letsencrypt on certbot
 
-TARGET_FILE="/etc/letsencrypt/hitch-bundle.pem"
+# From what I've read, hitch will notice if the certificates
+# change so I don't need to do anything special there.
+
 
 # RENEWED_LINEAGE will be something like “/etc/letsencrypt/live/example.com/”
 # RENEWED_DOMAINS will be a list “example.com www.example.com”
@@ -18,7 +20,6 @@ fi
 DHPARAMS=../../dhparams.pem
 
 umask 022
-
-# Glue the certificates all together in one file for hitch.
-cat privkey.pem fullchain.pem ${DHPARAMS} > ${TARGET_FILE}
-echo ${TARGET_FILE} created.
+# GLue the certificates all together in one file for hitch.
+cat privkey.pem fullchain.pem ${DHPARAMS} > hitch-bundle.pem
+echo hitch-bundle.pem created
