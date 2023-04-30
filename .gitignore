@@ -1,4 +1,7 @@
 dhparams.pem
+certs/archive
+certs/live
+certs/hitch-bundle.pem
 *.ini
 
 # Byte-compiled / optimized / DLL files
