@@ -94,8 +94,6 @@ sub vcl_synth {
         set resp.reason = "Found";
         return (deliver);
     }
-
-    return (deliver);
 }
 
 sub vcl_backend_response {
