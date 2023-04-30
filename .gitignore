@@ -1,6 +1,7 @@
 dhparams.pem
 certs/archive
 certs/live
+certs/renewal
 certs/hitch-bundle.pem
 *.ini
 
