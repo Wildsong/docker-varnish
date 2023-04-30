@@ -2,10 +2,6 @@
 #  This is intended to set up Varnish to run under Docker Swarm.
 #  It probably works with Docker Compose, too.
 #
-volumes:
-  certs:
-    name: letsencrypt_certs
-
 configs:
   varnish_config:
     file: ./etc/default.wildsong.vcl
