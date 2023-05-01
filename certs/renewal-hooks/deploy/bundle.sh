@@ -20,6 +20,6 @@ fi
 DHPARAMS=../../dhparams.pem
 
 umask 022
-# GLue the certificates all together in one file for hitch.
-cat privkey.pem fullchain.pem ${DHPARAMS} > hitch-bundle.pem
+# Glue the certificates all together in one file for hitch.
+cat privkey.pem fullchain.pem ${DHPARAMS} > /etc/letsencrypt/hitch-bundle.pem
 echo hitch-bundle.pem created
