@@ -4,8 +4,7 @@
 #
 configs:
   varnish_config:
-    file: ./etc/default.wildsong.vcl
-#    external: true
+    external: true
   hitch_config:
     file: ./etc/hitch.conf
   certificate_bundle:
