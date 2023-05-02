@@ -26,9 +26,13 @@ an external config that you set up.
 Two of the configs are loaded from files when you deploy the stack,
 etc/hitch.conf and certs/hitch-bundle.pem. 
 
-The Varnish file /etc/varnish/default.vcl is loaded from the config you specify.
+The Varnish file /etc/varnish/default.vcl is loaded from the config you specify. Here are the options for
+initial set up, cc-testmaps (testing), cc-giscache (production), and bellman (testing at home).
 
+   docker config create varnish_config etc/default.vcl
    docker config create varnish_config etc/default.cc-testmaps.vcl
+   docker config create varnish_config etc/default.giscache.vcl
+   docker config create varnish_config etc/default.wildsong.vcl
 
 The contents are encrypted, I just overwrite them to update it.
 

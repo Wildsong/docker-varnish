@@ -1,3 +1,4 @@
+#!/bin/bash
 # This gets run from crontab to keep certificates up to date.
 
 source .env

@@ -1,3 +1,4 @@
+#!/bin/bash
 # This gets run from crontab to keep certificates up to date.
 # Read options here https://eff-certbot.readthedocs.io/en/stable/using.html#configuration-file
 
