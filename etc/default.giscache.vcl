@@ -50,6 +50,10 @@ backend wetlands {
     .host = "cc-giscache";
     .port = "8890";
 }
+backend water_system_management {
+    .host = "cc-giscache";
+    .port = "8891";
+}
 
 #sub vcl_init {
 # You can do fancy load balancing things if you have the hardware.
@@ -130,7 +134,12 @@ sub vcl_recv {
             set req.url = regsub(req.url, "/wetlands/", "/");
             set req.backend_hint = wetlands;
             set req.http.X-Script-Name = "/wetlands";
-    
+
+	} elseif (req.url ~ "^/water_system_management/") {
+            set req.url = regsub(req.url, "/water_system_management/", "/");
+            set req.backend_hint = water_system_management;
+            set req.http.X-Script-Name = "/water_system_management";
+
         } else {
         # This handles the main landing page and the photos.
             set req.backend_hint = default;
