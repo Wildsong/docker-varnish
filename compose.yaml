@@ -10,6 +10,10 @@ configs:
   certificate_bundle:
     file: ./certs/hitch-bundle.pem
 
+networks:
+  default:
+    name: varnish_default
+
 services:
 
 # Varnish and hitch will communicate over port 8443 over the proxy network

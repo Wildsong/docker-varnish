@@ -61,7 +61,7 @@ backend wetlands {
     .port = "8890";
 }
 backend water_system_management {
-    .host = "cc-giscache";
+    .host = "cc-testmaps";
     .port = "8891";
 }
 
@@ -173,7 +173,7 @@ sub vcl_recv {
         set req.http.X-Script-Name = "/water_system_management";
     } elseif (req.url ~ "^/water_system_management/") {
         set req.url = regsub(req.url, "/water_system_management/", "/");
-        set req.backend_hint = water_system;
+        set req.backend_hint = water_system_management;
         set req.http.X-Script-Name = "/water_system_management";
 
 #    } elseif (req.url ~ "^/ajaxterm/") {
