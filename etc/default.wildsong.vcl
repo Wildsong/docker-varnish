@@ -3,7 +3,7 @@ vcl 4.1;
 # Static content
 backend default {
     .host = "192.168.123.2";
-    .port = "8080";
+    .port = "88";
 }
 
 backend homeassistant {
