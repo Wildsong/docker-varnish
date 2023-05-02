@@ -1,4 +1,5 @@
 dhparams.pem
+certs/accounts
 certs/archive
 certs/live
 certs/renewal
