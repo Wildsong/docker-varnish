@@ -21,6 +21,11 @@ backend pihole {
    .port = "83";
 }
 
+backend roundcube {
+   .host = "192.168.123.2";
+   .port = "84";
+}
+
 sub vcl_recv {
 
     if (req.http.upgrade ~ "(?i)websocket") {
@@ -46,6 +51,9 @@ sub vcl_recv {
         set req.backend_hint = homeassistant;
 
     } elseif (req.http.Host == "pihole.wildsong.biz") {
+        set req.backend_hint = pihole;
+
+    } elseif (req.http.Host == "roundcube.wildsong.biz") {
         set req.backend_hint = pihole;
 
     } else {
