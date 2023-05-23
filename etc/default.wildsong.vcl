@@ -54,7 +54,7 @@ sub vcl_recv {
         set req.backend_hint = pihole;
 
     } elseif (req.http.Host == "roundcube.wildsong.biz") {
-        set req.backend_hint = pihole;
+        set req.backend_hint = roundcube;
 
     } else {
         # Everything else just gets a simple web page
