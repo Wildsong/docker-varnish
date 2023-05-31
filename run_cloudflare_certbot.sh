@@ -24,5 +24,10 @@ docker run --rm -v $PWD/certs:/etc/letsencrypt:rw cc/certbot \
        --quiet --noninteractive
 
 # Update hitch
-# This should not be needed.
-#docker stack deploy --with-registry-auth -c compose.yaml varnish 
+hitch="certs/hitch-bundle.pem"
+age=$(stat -c %Y $hitch)
+now=$(date +"%s")
+if (( ($now - $age) < (60 * 60) )); then
+    echo $hitch changed
+    docker stack deploy --with-registry-auth -c compose.yaml varnish 
+fi

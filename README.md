@@ -213,7 +213,7 @@ hitch is required, it's supposed to see changes but I do it anyway.
 
    crontab -e
    # Renew certificates every morning
-   23 4  * * *  cd $HOME/docker/varnish && ./renew_dnsmadeeasy.sh 
+   23 4  * * *  cd $HOME/docker/varnish && ./run_certbot.sh
 
 ## Deployment
 
@@ -227,7 +227,10 @@ You can watch the "REPLICAS" column here and eventually it should show "1/1".
 
 ### Streaming the Varnish logfile
 
-You can watch all the extensive and detailed log messages by doing this. This is more useful on the development machine, since you will have to sort out what traffic you are interested in on the production machine.
+You can watch all the extensive and detailed log messages by doing
+this. This is more useful on the development machine, since you will
+have to sort out what traffic you are interested in on the production
+machine.
 
    docker ps | grep varnish_varnish #find the id
    de <ID> varnishlog

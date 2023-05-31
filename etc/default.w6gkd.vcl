@@ -3,7 +3,7 @@ vcl 4.1;
 # Static content
 backend default {
     .host = "108.161.129.155";
-    .port = "88";
+    .port = "83";
 }
 
 backend wiki {
@@ -14,11 +14,6 @@ backend wiki {
 backend hupi {
     .host = "108.161.129.155";
     .port = "82";
-}
-
-backend w6gkd {
-   .host = "108.161.129.155";
-   .port = "83";
 }
 
 sub vcl_recv {
@@ -41,9 +36,6 @@ sub vcl_recv {
 
     if (req.http.Host == "hupi.org") {
         set req.backend_hint = hupi;
-
-    } elseif (req.http.Host == "w6gkd.radio") {
-        set req.backend_hint = homeassistant;
 
     } elseif (req.http.Host == "wiki.wildsong.biz") {
         set req.backend_hint = wiki;
