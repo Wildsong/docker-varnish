@@ -32,12 +32,10 @@ initial set up, cc-testmaps (testing), cc-giscache (production), and bellman (te
    docker config create varnish_config etc/default.vcl
    docker config create varnish_config etc/default.cc-testmaps.vcl
    docker config create varnish_config etc/default.giscache.vcl
-   docker config create varnish_config etc/default.bellman.vcl
+   docker config create varnish_config etc/default.wildsong.vcl
+   docker config create varnish_config etc/default.w6gkd.vcl
 
-The contents are encrypted, I just overwrite them to update it. That would be something like
-
-   docker config rm varnish_config
-   docker config create varnish_config etc/default.bellman.vcl
+The contents are encrypted, I just overwrite them to update it.
 
 ### How it works
 
@@ -93,7 +91,7 @@ There are many many things you can do with Varnish, I have barely started learni
 Varnish (and the challenge server if you can't use DNSMadeEasy or CloudFlare)
 even if you don't have any certs yet.
 
-   docker stack deploy -c swarm.yaml varnish
+   docker stack deploy -c compose.yaml varnish
 
    docker cp dhparams.pem certs/
 

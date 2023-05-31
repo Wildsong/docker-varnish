@@ -1,1 +1,3 @@
+# NOTE This file gets baked into the docker image
+
 dns_cloudflare_api_token = YOUR_TOKEN_HERE

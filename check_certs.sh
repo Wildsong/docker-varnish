@@ -1,3 +1,6 @@
 #!/bin/bash
 
-docker run --rm -v $PWD/certs:/etc/letsencrypt:rw cc/certbot certificates
+source .env
+
+docker run --rm -v $PWD/certs:/etc/letsencrypt:rw cc/certbot certificates --cert-name ${CERTNAME}
+
