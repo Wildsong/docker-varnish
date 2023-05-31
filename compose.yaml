@@ -30,7 +30,7 @@ services:
         target: /etc/hitch/hitch.conf
     # hitch 1.1.1 requires all the cert files be in one bundle.pem
       - source: certificate_bundle
-        target: /etc/hitch/hitch-bundle.pem
+        target: /etc/letsencrypt/hitch-bundle.pem
     ports:
       # Move to port 444 if you want to do testing on production server
       - "443:443"
