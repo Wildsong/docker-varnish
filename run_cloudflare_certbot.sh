@@ -29,5 +29,6 @@ age=$(stat -c %Y $hitch)
 now=$(date +"%s")
 if (( ($now - $age) < (60 * 60) )); then
     echo $hitch changed
+    docker stack rm varnish 
     docker stack deploy --with-registry-auth -c compose.yaml varnish 
 fi
