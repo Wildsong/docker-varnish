@@ -14,7 +14,7 @@ docker run --rm -v $PWD/certs:/etc/letsencrypt:rw cc/certbot \
        certonly \
        --cert-name ${CERTNAME} \
        --expand \
-       ${DOMAINS} \
+       -d ${DOMAINS} \
        -m ${EMAIL} \
        --agree-tos \
        --deploy-hook=/etc/letsencrypt/renewal-hooks/deploy/bundle.sh \
