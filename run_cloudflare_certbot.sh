@@ -2,14 +2,13 @@
 # This gets run from crontab to keep certificates up to date.
 # Read options here https://eff-certbot.readthedocs.io/en/stable/using.html#configuration-file
 
-source .env
-
 # --cert-name will add or remove names using the certificate as named
 # --expand will only add names to an existing cert
 
 # "certonly" obtains certs without installing them (except in /etc/letsencrypt of course)
 # Add this in case some domains aren't working: --allow-subset-of-names
 
+source .env
 docker run --rm -v $PWD/certs:/etc/letsencrypt:rw cc/certbot \
        certonly \
        --cert-name ${CERTNAME} \
@@ -21,7 +20,7 @@ docker run --rm -v $PWD/certs:/etc/letsencrypt:rw cc/certbot \
        --disable-hook-validation \
        --max-log-backups=0 \
        --dns-cloudflare --dns-cloudflare-credentials /usr/local/lib/cloudflare.ini \
-       --quiet --noninteractive 2>/tmp/certbot_noise
+       --quiet --noninteractive
 
 # Update hitch
 hitch="certs/hitch-bundle.pem"

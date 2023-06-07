@@ -12,7 +12,7 @@ docker run --rm -v $PWD/certs:/etc/letsencrypt:rw cc/certbot certonly \
        --max-log-backups=0 \
        --allow-subset-of-names \
        --dns-dnsmadeeasy --dns-dnsmadeeasy-credentials /usr/local/lib/dnsmadeeasy.ini \
-       --quiet --noninteractive 2>/tmp/certbot_noise
+       --quiet --noninteractive
 
 # Update hitch
 # I should only do this if the hitch bundle changed.
