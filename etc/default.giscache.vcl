@@ -12,11 +12,17 @@ backend default {
 ## You can even run them on separate machines if you want
 ## and reference them with [cc-HOSTNAME] and it should resolve.
 ## I tried using [localhost] but that's not working.
+##-###############################################################
 
 # The Matomo services
 backend matomo {
     .host = "echo.clatsopcounty.gov";
     .port = "82";
+}
+
+backend records {
+    .host = "records.clatsopcounty.gov";
+    .port = "83";
 }
 
 # -------------------------------------
@@ -145,9 +151,10 @@ sub vcl_recv {
             set req.backend_hint = default;
         }
 
-    } elseif (req.http.host == "echo.clatsopcounty.gov"
-           || req.http.host == "echo.co.clatsop.or.us") # deprecated
-    {
+    } elseif (req.http.host == "records.clatsopcounty.gov") {
+        set req.backend_hint = records;
+
+    } elseif (req.http.host == "echo.clatsopcounty.gov") {
         set req.backend_hint = matomo;
     }
 
