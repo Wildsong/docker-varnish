@@ -22,7 +22,7 @@ backend matomo {
 
 backend records {
     .host = "records.clatsopcounty.gov";
-    .port = "83";
+    .port = "4000";
 }
 
 # -------------------------------------
