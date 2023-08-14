@@ -20,7 +20,11 @@ backend matomo {
     .port = "82";
 }
 
-backend records {
+backend records_client {
+    .host = "records.clatsopcounty.gov";
+    .port = "8080";
+}
+backend records_api {
     .host = "records.clatsopcounty.gov";
     .port = "4000";
 }
@@ -152,7 +156,11 @@ sub vcl_recv {
         }
 
     } elseif (req.http.host == "records.clatsopcounty.gov") {
-        set req.backend_hint = records;
+	if (req.url ~ "^/api") {
+            set req.backend_hint = records_api;
+	} else {
+            set req.backend_hint = records_client;
+        }
 
     } elseif (req.http.host == "echo.clatsopcounty.gov") {
         set req.backend_hint = matomo;
