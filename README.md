@@ -300,6 +300,12 @@ https://imagery.oregonexplorer.info/arcgis/services/NAIP_2009/NAIP_2009_WM/Image
 
 https://imagery.oregonexplorer.info/arcgis/rest/services/OSIP_2018/OSIP_2018_SL/ImageServer
 
+## Flush the cache
+
+You could just restart or you can look up the id and then use a varnishadm command. Something like this:
+
+    docker ps | grep varnish_varnish
+    de 9c9138e4e5ca varnishadm 'ban req.url ~ .'
 
 ## Resources
 
