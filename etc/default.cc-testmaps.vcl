@@ -2,7 +2,8 @@ vcl 4.1;
 import std;
 
 # This is the registry server for docker.
-# It is required for the records app to work.
+# I don't need this as I access port 5000 directly and it's already encrypted
+# I need something else here, it gives an error currently.
 backend default {
     .host = "cc-testmaps";
     .port = "5000";
