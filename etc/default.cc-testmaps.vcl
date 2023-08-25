@@ -4,9 +4,45 @@ import std;
 # This is the registry server for docker.
 # I don't need this as I access port 5000 directly and it's already encrypted
 # I need something else here, it gives an error currently.
-backend default {
+#backend default {
+#    .host = "cc-testmaps";
+#    .port = "5000";
+#}
+
+# -------------------------------------
+# Testing for mapproxy services
+
+backend bulletin {
     .host = "cc-testmaps";
-    .port = "5000";
+    .port = "8884";
+}
+backend city_aerials {
+    .host = "cc-testmaps";
+    .port = "8885";
+}
+backend county_aerials {
+    .host = "cc-testmaps";
+    .port = "8886";
+}
+backend county_aerials_brief {
+    .host = "cc-testmaps";
+    .port = "8887";
+}
+backend lidar {
+    .host = "cc-testmaps";
+    .port = "8888";
+}
+backend nhd {
+    .host = "cc-testmaps";
+    .port = "8889";
+}
+backend wetlands {
+    .host = "cc-testmaps";
+    .port = "8890";
+}
+backend water_system_management {
+    .host = "cc-testmaps";
+    .port = "8891";
 }
 
 ##-###############################################################
@@ -49,18 +85,61 @@ sub vcl_recv {
         return (synth(700, "Ping"));
     }
 
-    # Everything here currently is supported via a host header.
-    # The path is rewritten as required by the backend service provider.
-
     if (req.http.host == "foxtrot.clatsopcounty.gov") {
-       set req.backend_hint = default;
+    
+        if (req.url ~ "^/bulletin78_79/") {
+            set req.url = regsub(req.url, "^/bulletin78_79/", "/");
+            set req.backend_hint = bulletin;
+            set req.http.X-Script-Name = "^/bulletin78_79";
+    
+        } elseif (req.url ~ "^/city-aerials/") {
+            set req.url = regsub(req.url, "^/city-aerials/", "/");
+            set req.backend_hint = city_aerials;
+            set req.http.X-Script-Name = "/city-aerials";
+        
+        } elseif (req.url ~ "^/county-aerials/") {
+            set req.url = regsub(req.url, "^/county-aerials/", "/");
+            set req.backend_hint = county_aerials;
+            set req.http.X-Script-Name = "/county-aerials";
+    
+        } elseif (req.url ~ "^/county-aerials-brief/") {
+            set req.url = regsub(req.url, "^/county-aerials-brief/", "/");
+            set req.backend_hint = county_aerials_brief;
+            set req.http.X-Script-Name = "/county-aerials-brief";
+    
+        } elseif (req.url ~ "^/lidar-2020/") { # DEPRECATED
+            set req.url = regsub(req.url, "/lidar-2020/", "/");
+            set req.backend_hint = lidar;
+            set req.http.X-Script-Name = "/lidar-2020";
+        } elseif (req.url ~ "^/lidar/") {
+            set req.url = regsub(req.url, "/lidar/", "/");
+            set req.backend_hint = lidar;
+            set req.http.X-Script-Name = "/lidar";
+    
+        } elseif (req.url ~ "^/usgs-nhd/") {
+            set req.url = regsub(req.url, "/usgs-nhd/", "/");
+            set req.backend_hint = nhd;
+            set req.http.X-Script-Name = "/usgs-nhd";
+    
+        } elseif (req.url ~ "^/wetlands/") {
+            set req.url = regsub(req.url, "/wetlands/", "/");
+            set req.backend_hint = wetlands;
+            set req.http.X-Script-Name = "/wetlands";
+
+	} elseif (req.url ~ "^/water_system_management/") {
+            set req.url = regsub(req.url, "/water_system_management/", "/");
+            set req.backend_hint = water_system_management;
+            set req.http.X-Script-Name = "/water_system_management";
+
+#        } else {
+        # This handles the main landing page and the photos.
+#            set req.backend_hint = default;
+#        }
     }
 
-    # Everything else for now just goes to the registry server
-
-
-#  return (pipe); # Uncomment this line to disable caching.
-  # Cache everything (that is, all GET and HEAD requests)
+    # Normally no caching on foxtrot, I want to hit the backends every time to test faster...
+    return (pipe); # Uncomment to deactivate caching
+    # Otherwise, cache everything (that is, all GET and HEAD requests)
 }
 
 sub vcl_synth {
@@ -103,3 +182,4 @@ sub vcl_backend_response {
     # https://info.varnish-software.com/blog/how-to-set-and-override-ttl
     set beresp.ttl = 20m;
 }
+
