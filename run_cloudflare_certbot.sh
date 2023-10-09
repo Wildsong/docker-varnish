@@ -20,7 +20,10 @@ docker run --rm -v $PWD/certs:/etc/letsencrypt:rw cc/certbot \
        --disable-hook-validation \
        --max-log-backups=0 \
        --dns-cloudflare --dns-cloudflare-credentials /usr/local/lib/cloudflare.ini \
-       --quiet --noninteractive
+       --dns-cloudflare-propagation-seconds=30 \
+       --noninteractive
+#--quiet
+
 
 # Update hitch
 hitch="certs/hitch-bundle.pem"
