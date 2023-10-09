@@ -3,7 +3,7 @@ vcl 4.1;
 # Static content
 backend default {
     .host = "108.161.129.155";
-    .port = "83";
+    .port = "9090";
 }
 
 backend wiki {
