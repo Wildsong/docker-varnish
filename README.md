@@ -97,8 +97,9 @@ even if you don't have any certs yet.
 
 ### Build certbot and create certificates
 
-Build the correct Certbot image for your configuration. I use DNSMadeEasy.
-**There are secrets in this image, so do not send it to a public registry.**
+Build the correct Certbot image for your configuration. I use
+DNSMadeEasy in this example.  **There are secrets in this image, so do
+not send it to a public registry.**
 
 Using DNSMadeEasy
 
@@ -111,6 +112,10 @@ ELSE use Cloudflare API
    docker run --rm cc/certbot --version
    ./run_cloudflare_certbot.sh
 
+ELSE use the challenge server
+    docker buildx build -f Dockerfile.challenge -t cc/certbot .
+    ./run_certbot.sh
+    
 ### Images for Varnish and Hitch
 
 Hitch currently uses a standard image.
@@ -139,7 +144,7 @@ Because "echo" is listed first, the live certificate will be listed under that n
 all the other names will be included. List all certifcates and see for yourself what you have.
 
 ```bash
-docker run --rm -v letsencrypt_certs:/etc/letsencrypt cc/certbot certificates
+docker run --rm -v ./certs:/etc/letsencrypt cc/certbot certificates
 Saving debug log to /var/log/letsencrypt/letsencrypt.log
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -152,6 +157,14 @@ Found the following certs:
     Certificate Path: /etc/letsencrypt/live/echo.clatsopcounty.gov/fullchain.pem
     Private Key Path: /etc/letsencrypt/live/echo.clatsopcounty.gov/privkey.pem
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+```
+
+I just accidentally deleted certs/hitch-bundle.pem, oops. I recreated it, like this
+
+```bash
+docker run --rm -v ./certs:/etc/letsencrypt debian
+cd /etc/letsencrypt/live/wildsong.biz
+cat privkey.com fullchain.pem ../../dhparams.pem > ../../hitch-bundle.pem
 ```
 
 TODO - If I was really diligent I'd script something to create the
