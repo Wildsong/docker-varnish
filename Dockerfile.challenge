@@ -1,9 +1,0 @@
-FROM python:3-alpine3.17
-EXPOSE 8000
-
-WORKDIR /app
-COPY acme-challenge.py .
-
-RUN mkdir -p /www/.well-known/acme-challenge
-
-CMD [ "python", "/app/acme-challenge.py" ]

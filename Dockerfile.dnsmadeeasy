@@ -1,6 +1,0 @@
-FROM certbot/dns-dnsmadeeasy
-
-COPY dnsmadeeasy.ini /usr/local/lib/
-RUN chmod 400 /usr/local/lib/dnsmadeeasy.ini
-
-# This is run as a task, not a service, so it does not need a HEALTHCHECK

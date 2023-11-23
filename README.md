@@ -34,6 +34,7 @@ initial set up, cc-testmaps (testing), cc-giscache (production), and bellman (te
    docker config create varnish_config etc/default.giscache.vcl
    docker config create varnish_config etc/default.wildsong.vcl
    docker config create varnish_config etc/default.w6gkd.vcl
+   docker config create varnish_config etc/default.bellman.vcl
 
 The contents are encrypted, I just overwrite them to update it.
 

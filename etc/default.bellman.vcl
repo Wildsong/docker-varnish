@@ -6,24 +6,15 @@ backend default {
     .port = "88";
 }
 
-backend homeassistant {
-    .host = "192.168.123.2";
-    .port = "8123";
-}
-
-backend psono {
-    .host = "192.168.123.2";
-    .port = "81";
-}
-
 backend pihole {
    .host = "192.168.123.2";
    .port = "83";
 }
 
-backend roundcube {
+# This is (currently) a copy of TARRA wiki
+backend tarra {
    .host = "192.168.123.2";
-   .port = "84";
+   .port = "81";
 }
 
 sub vcl_recv {
@@ -44,17 +35,11 @@ sub vcl_recv {
     # Everything here currently is supported via a host header, 
     # the path is just passed through to the service provider.
 
-    if (req.http.Host == "falco.wildsong.biz") {
-        set req.backend_hint = psono;
-
-    } elseif (req.http.Host == "homeassistant.wildsong.biz") {
-        set req.backend_hint = homeassistant;
-
-    } elseif (req.http.Host == "pihole.wildsong.biz") {
+    if (req.http.Host == "pihole.wildsong.biz") {
         set req.backend_hint = pihole;
 
-    } elseif (req.http.Host == "roundcube.wildsong.biz") {
-        set req.backend_hint = roundcube;
+    } elseif (req.http.Host == "tarra.wildsong.biz") {
+        set req.backend_hint = tarra;
 
     } else {
         # Everything else just gets a simple web page

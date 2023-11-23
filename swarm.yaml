@@ -1,0 +1,78 @@
+#
+#  This is intended to set up Varnish to run under Docker Swarm.
+#  It probably works with Docker Compose, too.
+#
+configs:
+  varnish_config:
+    external: true
+  hitch_config:
+    file: ./etc/hitch.conf
+  certificate_bundle:
+    file: ./certs/hitch-bundle.pem
+
+networks:
+  default:
+    name: varnish_default
+
+services:
+
+# Varnish and hitch will communicate over port 8443 over the proxy network
+# 2023-03-27 Note the "enterprise" (not free) version of Varnish has TLS built in.
+# I imagine eventually Hitch will be deprecated.
+
+  # I listen for everything on port 443, using Let's Encrypt certificates
+  # and then send everything over the PROXY connection to Varnish on port 8443
+  hitch:
+#    image: nginx:latest # Hacky way to test settings (won't keep crashing and restarting)
+    image: hitch
+    configs:
+      - source: hitch_config
+        target: /etc/hitch/hitch.conf
+    # hitch 1.1.1 requires all the cert files be in one bundle.pem
+      - source: certificate_bundle
+        target: /etc/letsencrypt/hitch-bundle.pem
+    ports:
+      # Move to port 444 if you want to do testing on production server
+      - "443:443"
+#    healthcheck:
+#      no curl is installed here
+#      test: curl --fail https://localhost:443/ || exit 1
+#      interval: 60s
+#      retries: 3
+#      start_period: 20s
+#      timeout: 10s
+    restart: always
+    deploy:
+      mode: global
+      update_config:
+        order: 'stop-first'
+      restart_policy:
+        condition: any
+        delay: 10s # Wait between restart attempts
+        window: 30s # Wait this long before deciding if restart was successful.
+
+  # I need to have port 80 visible so that I can redirect traffic to TLS.
+  # The challenge server runs there, too.
+  # Everything else comes in from hitch.
+  varnish:
+    image: ghcr.io/clatsopcounty/varnish:latest
+    configs:
+      - source: varnish_config
+        target: /etc/varnish/default.vcl
+    ports:
+      - "80:80"
+    tmpfs: "/var/lib/varnish/varnishd:rw,exec"
+    restart: always
+    healthcheck:
+      interval: 60s
+      retries: 3
+      start_period: 20s
+      timeout: 10s
+    deploy:
+      mode: global
+      update_config:
+        order: 'stop-first'
+      restart_policy:
+        condition: any
+        delay: 10s # Wait between restart attempts
+        window: 30s # Wait this long before deciding if restart was successful.
