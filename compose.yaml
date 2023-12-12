@@ -29,7 +29,7 @@ services:
       - ./etc/hitch.conf:/etc/hitch/hitch.conf:ro
       - certs:/etc/letsencrypt:ro
     ports:
-      # Move to port 444 if you want to do testing on production server
+      # You can move to port 444 if you want to do testing on production server
       - "443:443"
     restart: always
     networks:
@@ -40,7 +40,10 @@ services:
   # I need to have port 80 visible so that I can redirect traffic to TLS.
   # Everything else comes in from hitch.
   varnish:
-    image: ghcr.io/clatsopcounty/varnish:latest
+    image: ghcr.io/wildsong/varnish:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     volumes:
       - ./etc/default.bellman.vcl:/etc/varnish/default.vcl
     ports:

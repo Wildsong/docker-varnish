@@ -56,7 +56,7 @@ services:
   # The challenge server runs there, too.
   # Everything else comes in from hitch.
   varnish:
-    image: ghcr.io/clatsopcounty/varnish:latest
+    image: ghcr.io/wildsong/varnish:latest
     configs:
       - source: varnish_config
         target: /etc/varnish/default.vcl
