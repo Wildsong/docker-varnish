@@ -7,8 +7,11 @@ configs:
     external: true
   hitch_config:
     file: ./etc/hitch.conf
-  certificate_bundle:
-    file: ./certs/hitch-bundle.pem
+
+volumes:
+  certs:
+    name: certs
+    external: true
 
 networks:
   default:
@@ -28,9 +31,8 @@ services:
     configs:
       - source: hitch_config
         target: /etc/hitch/hitch.conf
-    # hitch 1.1.1 requires all the cert files be in one bundle.pem
-      - source: certificate_bundle
-        target: /etc/letsencrypt/hitch-bundle.pem
+    volumes:
+      - certs:/etc/letsencrypt:ro
     ports:
       # Move to port 444 if you want to do testing on production server
       - "443:443"
