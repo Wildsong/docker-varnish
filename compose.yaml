@@ -1,5 +1,6 @@
 #
 #  This is intended to set up Varnish to run under Docker Compose.
+#  For swarm, use the file "swarm.yaml" instead.
 #
 volumes:
   certs:
