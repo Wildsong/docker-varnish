@@ -8,12 +8,12 @@
 #
 
 hitch=`docker stack services varnish | grep hitch | cut -b-12`
-if ("$hitch" != ""); then
+if [ -n "$hitch" ]; then
     docker service update --force $hitch
 else
     # Not running in swarm, try compose option.
     hitch=`docker ps | grep varnish_hitch | cut -b-12`
-    if ("$hitch" != ""); then
+    if [ -n "$hitch" ]; then
 	docker container $hitch
     else
 	echo "Could not restart Varnish Hitch, is it running?"
