@@ -9,6 +9,11 @@ import std;
 #    .port = "5000";
 #}
 
+backend pgadmin {
+    .host = "cc-testmaps";
+    .port = "8123";
+}
+
 # -------------------------------------
 # Testing for mapproxy services
 
@@ -87,7 +92,12 @@ sub vcl_recv {
 
     if (req.http.host == "foxtrot.clatsopcounty.gov") {
     
-        if (req.url ~ "^/bulletin78_79/") {
+        if (req.url ~ "^/pgadmin/") {
+            set req.url = regsub(req.url, "^/pgadmin/", "/"); # remove the route
+            set req.backend_hint = pgadmin; # pick the right backend
+            set req.http.X-Script-Name = "/pgadmin"; # mark it in the header
+    
+        } elseif (req.url ~ "^/bulletin78_79/") {
             set req.url = regsub(req.url, "^/bulletin78_79/", "/");
             set req.backend_hint = bulletin;
             set req.http.X-Script-Name = "^/bulletin78_79";
