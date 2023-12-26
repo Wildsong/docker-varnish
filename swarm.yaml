@@ -13,10 +13,6 @@ volumes:
     name: certs
     external: true
 
-networks:
-  default:
-    name: varnish_default
-
 services:
 
 # Varnish and hitch will communicate over port 8443 over the proxy network

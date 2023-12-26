@@ -50,7 +50,9 @@ is mounted as a tmpfs on /varnish_config and I can "cat" it.
 
 ### How do I get the services to use the files?
 
-The files will be available as files, I just have to teach the container to use them instead of the defaults. That's done with the config option, in my test, like this.
+The files will be available as files, I just have to teach the
+container to use them instead of the defaults. That's done with the
+config option, in my test, like this.
 
    docker service rm www-test
    docker service create --name www-test --config src=varnish_config,target="/etc/varnish/default.vcl" --replicas 1 --publish 8010:80 nginx:latest
@@ -58,6 +60,15 @@ The files will be available as files, I just have to teach the container to use 
    docker exec -it <ID> bash
 
 This is cool.
+
+## Build
+
+To update the image stored at github, when a new version of Varnish
+comes out for example, do this.  This builds a new image and pushes it
+to github.
+
+   docker buildx build -t wildsong/varnish .
+   docker push ghcr.io/wildsong/varnish
 
 ## Prerequisites
 
@@ -92,9 +103,10 @@ I use Compose at home and Swarm at work.
 
    docker stack deploy --with-registry-auth -c swarm.yaml varnish
 
-Make sure both of the services are starting! But give it some time! (A minute is plenty)
-Hitch will complain about not being able to find Varnish, and restart a few times before Varnish comes online.
-You can watch the "REPLICAS" column here and eventually it should show "1/1".
+Make sure both of the services are starting! But give it some time! (A
+minute is plenty) Hitch will complain about not being able to find
+Varnish, and restart a few times before Varnish comes online.  You can
+watch the "REPLICAS" column here and eventually it should show "1/1".
 
    docker service ls
 
@@ -120,11 +132,17 @@ My unittest.py script is now in the "www" project.
 
 ### Debugging
 
-#### Won't start?
-
 Try running in docker compose, in foreground, it's chatty,
 
    docker compose up
+
+#### Check the log for varnish
+
+Even if you see hitch is not starting, it could be a problem in the varnish config.
+Check logs for each! Especially I spent a lot of time looking for a name resolution
+error in hitch and the problem was a missing } in the varnish config.
+
+The error in hitch was "temporary failure in name resolution".
 
 #### Check varnishlog
 

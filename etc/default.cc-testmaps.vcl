@@ -9,6 +9,7 @@ import std;
 #    .port = "5000";
 #}
 
+# Postgres administrative GUI (kind of like SQL Studio)
 backend pgadmin {
     .host = "cc-testmaps";
     .port = "8123";
@@ -100,7 +101,7 @@ sub vcl_recv {
         } elseif (req.url ~ "^/bulletin78_79/") {
             set req.url = regsub(req.url, "^/bulletin78_79/", "/");
             set req.backend_hint = bulletin;
-            set req.http.X-Script-Name = "^/bulletin78_79";
+            set req.http.X-Script-Name = "/bulletin78_79";
     
         } elseif (req.url ~ "^/city-aerials/") {
             set req.url = regsub(req.url, "^/city-aerials/", "/");
@@ -142,9 +143,9 @@ sub vcl_recv {
             set req.http.X-Script-Name = "/water_system_management";
 
 #        } else {
-        # This handles the main landing page and the photos.
+#        # This handles the main landing page and the photos.
 #            set req.backend_hint = default;
-#        }
+        }
     }
 
     # Normally no caching on foxtrot, I want to hit the backends every time to test faster...
