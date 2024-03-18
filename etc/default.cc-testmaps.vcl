@@ -1,79 +1,18 @@
 vcl 4.1;
 import std;
 
-# This is the registry server for docker.
-# I don't need this as I access port 5000 directly and it's already encrypted
-# I need something else here, it gives an error currently.
-#backend default {
-#    .host = "cc-testmaps";
-#    .port = "5000";
-#}
-
-# Postgres administrative GUI (kind of like SQL Studio)
 backend pgadmin {
     .host = "cc-testmaps";
-    .port = "8123";
+    .port = "8213";
 }
-
-# -------------------------------------
-# Testing for mapproxy services
-
-backend bulletin {
+backend property {
     .host = "cc-testmaps";
-    .port = "8884";
+    .port = "8080";
 }
-backend city_aerials {
+backend property_api {
     .host = "cc-testmaps";
-    .port = "8885";
+    .port = "4000";
 }
-backend county_aerials {
-    .host = "cc-testmaps";
-    .port = "8886";
-}
-backend county_aerials_brief {
-    .host = "cc-testmaps";
-    .port = "8887";
-}
-backend lidar {
-    .host = "cc-testmaps";
-    .port = "8888";
-}
-backend nhd {
-    .host = "cc-testmaps";
-    .port = "8889";
-}
-backend wetlands {
-    .host = "cc-testmaps";
-    .port = "8890";
-}
-backend water_system_management {
-    .host = "cc-testmaps";
-    .port = "8891";
-}
-
-##-###############################################################
-## These are running in separate containers
-## You can even run them on separate machines if you want
-## and reference them with [cc-HOSTNAME] and it should resolve.
-## I tried using [localhost] but that's not working.
-
-## Web App Builder and Experience Builder
-#backend wabde {
-#    .host = "cc-testmaps";
-#    .port = "3344";
-#
-#backend exb {
-#    .host = "cc-testmaps";
-#    .port = "3000";
-#}
-
-#sub vcl_init {
-# You can do fancy load balancing things if you have the hardware.
-# for more info, see https://github.com/nigoroll/libvmod-dynamic/blob/master/src/vmod_dynamic.vcc
-#        new d = dynamic.director(port = "80");
-#    new vdir = directors.round_robin();
-#    vdir.add_backend(cc-testmaps);
-#}
 
 sub vcl_recv {
 
@@ -91,61 +30,19 @@ sub vcl_recv {
         return (synth(700, "Ping"));
     }
 
-    if (req.http.host == "foxtrot.clatsopcounty.gov") {
-    
-        if (req.url ~ "^/pgadmin/") {
-            set req.url = regsub(req.url, "^/pgadmin/", "/"); # remove the route
-            set req.backend_hint = pgadmin; # pick the right backend
-            set req.http.X-Script-Name = "/pgadmin"; # mark it in the header
-    
-        } elseif (req.url ~ "^/bulletin78_79/") {
-            set req.url = regsub(req.url, "^/bulletin78_79/", "/");
-            set req.backend_hint = bulletin;
-            set req.http.X-Script-Name = "/bulletin78_79";
-    
-        } elseif (req.url ~ "^/city-aerials/") {
-            set req.url = regsub(req.url, "^/city-aerials/", "/");
-            set req.backend_hint = city_aerials;
-            set req.http.X-Script-Name = "/city-aerials";
-        
-        } elseif (req.url ~ "^/county-aerials/") {
-            set req.url = regsub(req.url, "^/county-aerials/", "/");
-            set req.backend_hint = county_aerials;
-            set req.http.X-Script-Name = "/county-aerials";
-    
-        } elseif (req.url ~ "^/county-aerials-brief/") {
-            set req.url = regsub(req.url, "^/county-aerials-brief/", "/");
-            set req.backend_hint = county_aerials_brief;
-            set req.http.X-Script-Name = "/county-aerials-brief";
-    
-        } elseif (req.url ~ "^/lidar-2020/") { # DEPRECATED
-            set req.url = regsub(req.url, "/lidar-2020/", "/");
-            set req.backend_hint = lidar;
-            set req.http.X-Script-Name = "/lidar-2020";
-        } elseif (req.url ~ "^/lidar/") {
-            set req.url = regsub(req.url, "/lidar/", "/");
-            set req.backend_hint = lidar;
-            set req.http.X-Script-Name = "/lidar";
-    
-        } elseif (req.url ~ "^/usgs-nhd/") {
-            set req.url = regsub(req.url, "/usgs-nhd/", "/");
-            set req.backend_hint = nhd;
-            set req.http.X-Script-Name = "/usgs-nhd";
-    
-        } elseif (req.url ~ "^/wetlands/") {
-            set req.url = regsub(req.url, "/wetlands/", "/");
-            set req.backend_hint = wetlands;
-            set req.http.X-Script-Name = "/wetlands";
-
-	} elseif (req.url ~ "^/water_system_management/") {
-            set req.url = regsub(req.url, "/water_system_management/", "/");
-            set req.backend_hint = water_system_management;
-            set req.http.X-Script-Name = "/water_system_management";
-
-#        } else {
-#        # This handles the main landing page and the photos.
-#            set req.backend_hint = default;
-        }
+    if (req.url ~ "^/property/") {
+        set req.url = regsub(req.url, "^/property/", "/"); # remove the route
+        set req.http.X-Script-Name = "/property"; # mark it in the header
+        set req.backend_hint = property; # pick the right backend        
+    }
+    elseif (req.url ~ "^/api") {
+        #set req.url = regsub(req.url, "^/api", "/"); # remove the route
+        set req.http.X-Script-Name = "/api"; # mark it in the header
+        set req.backend_hint = property_api; # pick the right backend        
+    }
+    else {
+        set req.http.X-Script-Name = "/pgadmin"; # mark it in the header
+        set req.backend_hint = pgadmin; # pick the right backend        
     }
 
     # Normally no caching on foxtrot, I want to hit the backends every time to test faster...
