@@ -1,6 +1,16 @@
 vcl 4.1;
 import std;
 
+###
+###      -- NOTE --
+###
+###      in SWARM mode this is in a docker config,
+###      to reload it,
+###
+###        docker config rm varnish_config
+###        docker config create varnish_config etc/default.giscache.vcl
+###
+
 # The main landing page and some photo services (nginx)
 backend default {
     .host = "cc-giscache";
