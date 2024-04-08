@@ -1,6 +1,12 @@
 vcl 4.1;
 import std;
 
+# The main landing page and some photo services (nginx)
+backend default {
+    .host = "cc-testmaps";
+    .port = "83";
+}
+
 backend pgadmin {
     .host = "cc-testmaps";
     .port = "8213";
@@ -12,6 +18,46 @@ backend property {
 backend property_api {
     .host = "cc-testmaps";
     .port = "4000";
+}
+
+# -------------------------------------
+
+# separate mapproxy services
+backend bulletin {
+    .host = "cc-giscache";
+    .port = "8884";
+}
+backend city_aerials {
+    .host = "cc-giscache";
+    .port = "8885";
+}
+backend county_aerials {
+    .host = "cc-giscache";
+    .port = "8886";
+}
+backend county_aerials_brief {
+    .host = "cc-giscache";
+    .port = "8887";
+}
+backend lidar {
+    .host = "cc-giscache";
+    .port = "8888";
+}
+backend nhd {
+    .host = "cc-giscache";
+    .port = "8889";
+}
+backend wetlands {
+    .host = "cc-giscache";
+    .port = "8890";
+}
+backend water_system_management {
+    .host = "cc-giscache";
+    .port = "8891";
+}
+backend dsl_wetlands {
+    .host = "cc-testmaps";
+    .port = "8892";
 }
 
 sub vcl_recv {
@@ -30,19 +76,72 @@ sub vcl_recv {
         return (synth(700, "Ping"));
     }
 
-    if (req.url ~ "^/property/") {
+    if (req.url ~ "^/bulletin78_79/") {
+        set req.url = regsub(req.url, "^/bulletin78_79/", "/");
+        set req.backend_hint = bulletin;
+        set req.http.X-Script-Name = "^/bulletin78_79";
+    
+    } elseif (req.url ~ "^/city-aerials/") {
+        set req.url = regsub(req.url, "^/city-aerials/", "/");
+        set req.backend_hint = city_aerials;
+        set req.http.X-Script-Name = "/city-aerials";
+
+    } elseif (req.url ~ "^/county-aerials/") {
+        set req.url = regsub(req.url, "^/county-aerials/", "/");
+        set req.backend_hint = county_aerials;
+        set req.http.X-Script-Name = "/county-aerials";
+
+    } elseif (req.url ~ "^/county-aerials-brief/") {
+        set req.url = regsub(req.url, "^/county-aerials-brief/", "/");
+        set req.backend_hint = county_aerials_brief;
+        set req.http.X-Script-Name = "/county-aerials-brief";
+
+    } elseif (req.url ~ "^/lidar-2020/") { # DEPRECATED
+        set req.url = regsub(req.url, "/lidar-2020/", "/");
+        set req.backend_hint = lidar;
+        set req.http.X-Script-Name = "/lidar-2020";
+    } elseif (req.url ~ "^/lidar/") {
+        set req.url = regsub(req.url, "/lidar/", "/");
+        set req.backend_hint = lidar;
+        set req.http.X-Script-Name = "/lidar";
+
+    } elseif (req.url ~ "^/usgs-nhd/") {
+        set req.url = regsub(req.url, "/usgs-nhd/", "/");
+        set req.backend_hint = nhd;
+        set req.http.X-Script-Name = "/usgs-nhd";
+
+    } elseif (req.url ~ "^/wetlands/") {
+        set req.url = regsub(req.url, "/wetlands/", "/");
+        set req.backend_hint = wetlands;
+        set req.http.X-Script-Name = "/wetlands";
+	
+    } elseif (req.url ~ "^/dsl_wetlands/") {
+        set req.url = regsub(req.url, "/dsl_wetlands/", "/");
+        set req.backend_hint = dsl_wetlands;
+        set req.http.X-Script-Name = "/dsl_wetlands";
+
+    } elseif (req.url ~ "^/water_system_management/") {
+        set req.url = regsub(req.url, "/water_system_management/", "/");
+        set req.backend_hint = water_system_management;
+        set req.http.X-Script-Name = "/water_system_management";
+
+    } elseif (req.url ~ "^/property/") {
         set req.url = regsub(req.url, "^/property/", "/"); # remove the route
         set req.http.X-Script-Name = "/property"; # mark it in the header
         set req.backend_hint = property; # pick the right backend        
-    }
-    elseif (req.url ~ "^/api") {
-        #set req.url = regsub(req.url, "^/api", "/"); # remove the route
+
+    } elseif (req.url ~ "^/api") {
         set req.http.X-Script-Name = "/api"; # mark it in the header
         set req.backend_hint = property_api; # pick the right backend        
-    }
-    else {
+
+    } elseif (req.url ~ "^/pgadmin") {
+        set req.url = regsub(req.url, "^/pgadmin", "/"); # remove the route
         set req.http.X-Script-Name = "/pgadmin"; # mark it in the header
         set req.backend_hint = pgadmin; # pick the right backend        
+
+    } else {
+        # This handles the main landing page and media.
+        set req.backend_hint = default;
     }
 
     # Normally no caching on foxtrot, I want to hit the backends every time to test faster...
