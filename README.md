@@ -158,12 +158,11 @@ The error in hitch was "temporary failure in name resolution".
 
 1. In terminal #1, watch the very detailed log,
 
-   id=`docker ps | grep varnish_varnish | cut -b-12`
-   docker exec -it $id varnishlog
+   ./watch-log.sh
 
-2. In terminal #2, send a request with curl and stand back.
+2. In terminal #2, send a request with curl and stand back!
 
-   curl -v https://foxtrot.clatsopcounty.gov/
+   curl -v https://giscache.clatsopcounty.gov/
 
 ## Notes on WMS metadata etc...
 
