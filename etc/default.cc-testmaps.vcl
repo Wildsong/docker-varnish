@@ -1,7 +1,7 @@
 vcl 4.1;
 import std;
 
-# The main landing page and some photo services (nginx)
+# The main landing page 
 backend default {
     .host = "cc-testmaps";
     .port = "83";
@@ -54,10 +54,6 @@ backend wetlands {
 backend water_system_management {
     .host = "cc-giscache";
     .port = "8891";
-}
-backend dsl_wetlands {
-    .host = "cc-testmaps";
-    .port = "8892";
 }
 
 sub vcl_recv {
@@ -114,11 +110,6 @@ sub vcl_recv {
         set req.url = regsub(req.url, "/wetlands/", "/");
         set req.backend_hint = wetlands;
         set req.http.X-Script-Name = "/wetlands";
-	
-    } elseif (req.url ~ "^/dsl_wetlands/") {
-        set req.url = regsub(req.url, "/dsl_wetlands/", "/");
-        set req.backend_hint = dsl_wetlands;
-        set req.http.X-Script-Name = "/dsl_wetlands";
 
     } elseif (req.url ~ "^/water_system_management/") {
         set req.url = regsub(req.url, "/water_system_management/", "/");
