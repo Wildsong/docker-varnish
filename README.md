@@ -95,11 +95,13 @@ does the Let's Encrypt thing.
 
 I use Compose at home and Swarm at work.
 
-### Compose
+### Starting with Swarm
 
-   docker compose up -d
+Use the command
 
-### Swarm
+   ./start-swarm.sh
+
+which is the same as
 
    docker stack deploy --with-registry-auth -c swarm.yaml varnish
 
@@ -109,6 +111,14 @@ Varnish, and restart a few times before Varnish comes online.  You can
 watch the "REPLICAS" column here and eventually it should show "1/1".
 
    docker service ls
+
+There is also a command to shut it down,
+
+   ./stop-varnish.sh
+
+### Alternatively, starting with Compose
+
+   docker compose up -d
 
 ### Streaming the Varnish logfile
 
@@ -148,12 +158,11 @@ The error in hitch was "temporary failure in name resolution".
 
 1. In terminal #1, watch the very detailed log,
 
-   id=`docker ps | grep varnish_varnish | cut -b-12`
-   docker exec -it $id varnishlog
+   ./watch-log.sh
 
-2. In terminal #2, send a request with curl and stand back.
+2. In terminal #2, send a request with curl and stand back!
 
-   curl -v https://foxtrot.clatsopcounty.gov/
+   curl -v https://giscache.clatsopcounty.gov/
 
 ## Notes on WMS metadata etc...
 
