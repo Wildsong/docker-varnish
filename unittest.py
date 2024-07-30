@@ -305,16 +305,11 @@ if __name__ == "__main__":
     test_property_photos('https://apps.clatsopcounty.gov')
 
     # Matomo
-#    testGETtype(f'https://echo.clatsopcounty.gov{port}/', 'text/html; charset=utf-8')#, expected_server=MATOMO)
-    testGETtype(f'https://echo.clatsopcounty.gov{port}/', 'text/html')
+    testGETtype(f'https://echo.clatsopcounty.gov{port}/', 'text/html; charset=utf-8')#, expected_server=MATOMO)
+#    testGETtype(f'https://echo.clatsopcounty.gov{port}/', 'text/html')
     
     testGETtype(f'https://echo.clatsopcounty.gov{port}/matomo.js', 'application/javascript')#, expected_server=MATOMO)
-    # I don't care about the old URL anymore.
-#    if VARNISH:
-#        # These only work when Varnish is running.
-#        testGETtype(f'https://echo.co.clatsop.or.us{port}/', 'text/html; charset=utf-8', expected_server=MATOMO)
-#        testGETtype(f'https://echo.co.clatsop.or.us{port}/matomo.js', 'application/javascript', expected_server=MATOMO)
-    
+
     # I don't care if these are proxied right now. Work on it later.    
     test_dev_apps()
 
